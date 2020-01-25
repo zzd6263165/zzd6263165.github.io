@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://hanlin.fun').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.6.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":true,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+
+
+  <meta name="description" content="用一个例子由浅入深地讲解如何利用Python的Django框架实现一个项目">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Django基础与投票应用">
+<meta property="og:url" content="https://hanlin.fun/django-ji-chu/index.html">
+<meta property="og:site_name" content="霖时人間">
+<meta property="og:description" content="用一个例子由浅入深地讲解如何利用Python的Django框架实现一个项目">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-13.png">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-14.png">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-15.png">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-16.png">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-17.png">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-19.png">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-20.png">
+<meta property="og:image" content="https://hanlin.fun/images/pasted-21.png">
+<meta property="article:published_time" content="2020-01-02T11:10:00.000Z">
+<meta property="article:modified_time" content="2020-01-21T05:14:06.909Z">
+<meta property="article:author" content="霖">
+<meta property="article:tag" content="mySQL">
+<meta property="article:tag" content="django">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://hanlin.fun/images/pasted-13.png">
+
+<link rel="canonical" href="https://hanlin.fun/django-ji-chu/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Django基础与投票应用 | 霖时人間</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="霖时人間" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <!-- <div class="headband"><a href="https://github.com/zzd6263165" target="_blank" rel="noopener" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style></div> -->
+    
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">霖时人間</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">相信的心就是你的魔法</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://hanlin.fun/django-ji-chu/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="霖">
+      <meta itemprop="description" content="センスに自信がある">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="霖时人間">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Django基础与投票应用
+        </h1>
+
+        <div class="post-meta">
+          <!-- 添加置顶标志 -->
+          
+            <i class="fa fa-thumb-tack"></i>
+            <font color=green>置顶</font>
+            <span class="post-meta-divider">|</span>
+          
+
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-02 19:10:00" itemprop="dateCreated datePublished" datetime="2020-01-02T19:10:00+08:00">2020-01-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-21 13:14:06" itemprop="dateModified" datetime="2020-01-21T13:14:06+08:00">2020-01-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/django%E6%A1%86%E6%9E%B6%E4%BD%BF%E7%94%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">django框架使用</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>15k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>14 分钟</span>
+            </span>
+            <div class="post-description">用一个例子由浅入深地讲解如何利用Python的Django框架实现一个项目</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="Django简介"><a href="#Django简介" class="headerlink" title="Django简介"></a>Django简介</h3><p>Python下有许多款不同的 Web 框架。Django是重量级选手中最有代表性的一位。许多成功的网站和APP都基于Django。</p>
+<ul>
+<li><p>Django是一个开放源代码的Web应用框架，由Python写成。</p>
+</li>
+<li><p>Django遵守BSD版权，初次发布于2005年7月, 并于2008年9月发布了第一个正式版本1.0 。</p>
+</li>
+<li><p>Django采用了MVC的软件设计模式，即模型M，视图V和控制器C。</p>
+</li>
+</ul>
+<p>（转自菜鸟教程 <a href="https://www.runoob.com/django/django-tutorial.html" target="_blank" rel="noopener">https://www.runoob.com/django/django-tutorial.html</a> ）</p>
+<h3 id="创建并运行Django项目"><a href="#创建并运行Django项目" class="headerlink" title="创建并运行Django项目"></a>创建并运行Django项目</h3><p>创建django项目的方法很多，这里主要介绍三种方法：</p>
+<h4 id="方法一"><a href="#方法一" class="headerlink" title="方法一"></a>方法一</h4><ul>
+<li><p>首先保证已经拥有python开发环境，之后在终端中使用<code>pip install</code>的指令安装django依赖项</p>
+</li>
+<li><p>在安装完django依赖项之后，我们可以使用django admin的工具用来创建我们的django项目,使用指令<code>django-admin startproject 项目名</code>，这个时候在使用命令的目录下就会生成一个以<code>项目名</code>命名的项目文件夹，其中包含了项目的配置文件，url的映射文件，还有django的管理工具manage.py。</p>
+</li>
+<li><p>之后我们可以使用pycharm打开创建好的项目文件夹，然后开始配置项目的虚拟环境。</p>
+<ul>
+<li><p>配置虚拟环境有两种方法，一种是在pycharm中利用File —&gt; setting —&gt; Project —&gt; Project Interpreter —&gt; Add 的方法创建虚拟环境。</p>
+</li>
+<li><p>也可以利用pycharm中的终端功能，直接在终端里输入<code>python -m venv（模块名） venv(虚拟文件文件夹的名字)</code>    或者利用virtualenv这一个工具，在终端中输入<code>virtualenv --python==/usr/bin/python3（python的安装路径） venv（虚拟文件夹的名字）</code></p>
+</li>
+</ul>
+</li>
+<li><p>激活虚拟环境：苹果Linux系统下使用<code>source venv/bin/activate</code>Windows系统下使用<code>venv/Scripts/activate</code>的指令激活虚拟环境</p>
+</li>
+<li><p>在虚拟环境中安装django依赖项，在pycharm终端中输入<code>pip install django==2.1.15（可以自己指定想要安装的版本）</code></p>
+</li>
+<li><p>运行项目，这里依然有两种方法，第一种方法是直接在pycharm的终端中输入<code>python manage.py runserver</code>另一种方式就是创建一个快捷的启动按钮，Add Configuration —&gt; + —&gt; Python —&gt; Script Path(选中django项目文件中的manage.py) —&gt; Parameters(runserver)</p>
+</li>
+</ul>
+<h4 id="方法二"><a href="#方法二" class="headerlink" title="方法二"></a>方法二</h4><ul>
+<li>用pycharm创建一个普通的python项目</li>
+<li>安装djiango所需的依赖项，在pycharm终端中输入<code>pip install django==2.1.14</code></li>
+<li>把Python项目变成django项目<br><code>django-admin startproject 创建的Python项目名 .（注意这个.不要漏了，这个.表示在当前目录下创建django项目）</code></li>
+<li>运行项目的步骤同方法一</li>
+</ul>
+<h4 id="方法三"><a href="#方法三" class="headerlink" title="方法三"></a>方法三</h4><ul>
+<li><p>克隆项目到本地：使用pycharm的”get from version control” —&gt; 输入保存项目的路径和克隆的远程仓库地址eg:”<a href="mailto:git@gitee.com">git@gitee.com</a>:xxxx/djangoP.git”</p>
+</li>
+<li><p>克隆的项目通常不包含虚拟环境，因此需要激活虚拟环境：Linux/MacOS系统下使用<code>source venv/bin/activate</code>Windows系统下使用<code>venv/Scripts/activate</code>的指令激活虚拟环境</p>
+</li>
+<li><p>重建依赖项<code>pip install -r requirements.txt</code></p>
+</li>
+<li><p>运行项目:方法同上</p>
+</li>
+</ul>
+<p>当我们把django项目创建好并运行之后，通过访问<a href="https://127.0.0.1:8000/" target="_blank" rel="noopener">https://127.0.0.1:8000/</a> ，我们就能够看到django项目的默认欢迎页面啦</p>
+<p><img data-src="/images/pasted-13.png" alt="django默认欢迎页面"></p>
+<h3 id="django投票项目"><a href="#django投票项目" class="headerlink" title="django投票项目"></a>django投票项目</h3><h4 id="django项目创建"><a href="#django项目创建" class="headerlink" title="django项目创建"></a>django项目创建</h4><p>我们创建一个名为djangoP的项目（略）</p>
+<h4 id="设置配置文件"><a href="#设置配置文件" class="headerlink" title="设置配置文件"></a>设置配置文件</h4><h5 id="数据库设置"><a href="#数据库设置" class="headerlink" title="数据库设置"></a>数据库设置</h5><p>django项目的配置文件中，默认使用的是sqlite数据库，而开发过程中我们更常使用mySQL等关系型数据库，这里以mySQL数据库的配置为例来讲解该项目</p>
+<ul>
+<li><p>在服务器上启动mySQL:<code>systemctl start mysqld</code>,启动之后可以利用<code>netstat -ntlp</code>检查mySQL是否成功启动</p>
+</li>
+<li><p>使用mySQL客户端工具（或者可视化的程序，如navicat等）连接mySQL:<code>mysql -u root (-h ip地址) -p</code>（注意，连本机不需要-h，而连接非本机则需要输入服务器的ip地址），回车之后输入登录的口令密码即可成功连接。</p>
+</li>
+<li><p><code>show databases</code>查看当前服务器存在的数据库，mySQL中主要有三类的操作:</p>
+<ul>
+<li>DDL（Data Definition Languages）数据定义语句 —&gt; create/drop/alter ；</li>
+<li>DML（Data Manipulation Language）数据操纵语句，用于数据库记录的增删改查操作 —&gt; insert/delete/update/select(select有时也被单独成为DQL类操作)；</li>
+<li>DCL（Data Control Language）数据库控制语言，主要用于对数据库的操纵权限的分配操作 —&gt; grant/revoke</li>
+</ul>
+</li>
+<li><p>这里我们为本次的投票项目新建一个数据库<code>create database djangopolls default charset utf8;</code>（注意，为防止存入中文时出现编码错误，这里要指定编码方式），<code>use djangopolls</code>使用当前数据库，<code>show tables</code>查看当前数据库中的表</p>
+</li>
+<li><p>注意：在项目过程中，我们往往不会直接使用root超级管理员账号，而是新建一个用户并且授予其项目实施过程中所需要的权限，这样的做法更加科学和安全，因此，这里我们需要创建一个新的用户。<code>create user &#39;hanlin&#39;@&#39;%&#39; identified by &#39;123456（该用户的登录口令）;&#39;</code>“@”之后的字段表示只允许该用户从某一个特定的主机连接该服务器。“%”表示该用户可以从任意主机连接服务器。<code>grant all privileges on djangopolls.* to &#39;hanlin&#39;@&#39;%&#39;;</code>赋予“hanlin”这个用户在“djangopolls”这个数据库里对该数据库的所有权限。</p>
+</li>
+<li><p>当数据库和用户创建完毕之后，我们可以修改django项目配置文件中的“DATABASE”</p>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">DATABASES = &#123;</span><br><span class="line">    <span class="string">'default'</span>: &#123;</span><br><span class="line">        <span class="string">'ENGINE'</span>: <span class="string">'django.db.backends.sqlite3'</span>,</span><br><span class="line">        <span class="string">'NAME'</span>: os.path.join(BASE_DIR, <span class="string">'db.sqlite3'</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">DATABASES = &#123;</span><br><span class="line">    <span class="string">'default'</span>: &#123;</span><br><span class="line">        <span class="string">'ENGINE'</span>: <span class="string">'django.db.backends.mysql'</span>,</span><br><span class="line">        <span class="string">'NAME'</span>: <span class="string">'djangopolls'</span>,</span><br><span class="line">        <span class="string">'HOST'</span>: <span class="string">'47.96,21,76'</span>,</span><br><span class="line">        <span class="string">'PORT'</span>: <span class="number">3306</span>,</span><br><span class="line">        <span class="string">'USER'</span>: <span class="string">'hanlin'</span>,</span><br><span class="line">        <span class="string">'PASSWORD'</span>: <span class="string">'123456'</span>,</span><br><span class="line">        <span class="string">'CHARSET'</span>: <span class="string">'utf8'</span>,</span><br><span class="line">        <span class="string">'TIME_ZONE'</span>: <span class="string">'Asia/Chongqing'</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="创建应用"><a href="#创建应用" class="headerlink" title="创建应用"></a>创建应用</h5><ul>
+<li><p>数据库配置完成后，我们可以开始创建我们的投票应用了。在pycharm的终端中输入<code>python manage.py startapp polls</code>或者<code>django-admin startapp polls</code>，创建好之后我们会发现项目下多了一个“polls”的文件夹，其中有很多py文件。</p>
+<ul>
+<li><p>这里我们引入一些新的知识点，我们在开发项目中常常会使用一种开发模式，特别是功能比较复杂的项目，更需要对功能，对结构进行拆分，其中有一种“MVC架构模式”非常泛用。</p>
+<blockquote>
+<p>Model - View - Controller</p>
+</blockquote>
+<blockquote>
+<p>模型 - 视图 - 控制器</p>
+</blockquote>
+<blockquote>
+<p>数据 - 数据的显示 - 控制器（粘合数据和数据的显示）</p>
+</blockquote>
+<blockquote>
+<p>数据和数据的显示要分离（数据和显示的解耦合），我们写程序的时候一定要遵循“高内聚，低耦合”的原则。我们在写前端界面时也用到了数据和数据显示相分离的结构，比如我们在标签中写的是数据，而数据的显示则是写在样式表中</p>
+</blockquote>
+<blockquote>
+<p>在django中，依然遵循“MVC架构模式”，但是命名方式稍有区别</p>
+</blockquote>
+<blockquote>
+<p>Model - Template - View</p>
+</blockquote>
+<blockquote>
+<p>模型 - 模板 - 视图</p>
+</blockquote>
+<blockquote>
+<p>数据 - 数据的显示 - django中的视图扮演了控制器的角色</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li>我们现在再来看我们创建的应用“polls”，其中的“models”文件就是用来存放模型的，而“views”则是存放视图的文件，此时我们还需要创建一个“templates”的文件夹来存放模板。我们在项目“djangoP”目录下创建“templates”文件夹，创建好文件夹之后我们还需要去配置文件中配置模板的路径，在配置文件“setting.py”中找到“TEMPLATES”，其中的“DIRS”就是配置“templates”路径的地方。注意：此处的路径要写绝对路径，由于“setting.py中声明了BASE_DIR”即项目根路径，而“templates”文件夹就是根路径下，此处我们可以直接拼接:<code>os.path.join(BASE_DIR, &#39;templates&#39;)</code>到此位置模板也配置完成了，“MTV”架构全部完成！</li>
+</ul>
+</li>
+</ul>
+<p><img data-src="/images/pasted-14.png" alt="templates路径配置"></p>
+<h5 id="配置视图文件和urls统一资源定位符管理文件实现简单的访问"><a href="#配置视图文件和urls统一资源定位符管理文件实现简单的访问" class="headerlink" title="配置视图文件和urls统一资源定位符管理文件实现简单的访问"></a>配置视图文件和urls统一资源定位符管理文件实现简单的访问</h5><ul>
+<li><p>控制器的配置，前面我们说过“views.py”在django中扮演了控制器的角色，那么它主要承担了怎样的工作呢？</p>
+<ul>
+<li>接收用户的请求</li>
+<li>操作模型</li>
+<li>产生响应（渲染页面）</li>
+</ul>
+</li>
+<li><p>视图函数:</p>
+<ul>
+<li>在views.py中声明函数</li>
+<li>在urls.py中配置返回链接</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 当用户发起请求，系统给一个回应，这里要从django提供的库django.http中导入HttpResponse模块</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">(request:HttpRequest)</span>:</span></span><br><span class="line">	<span class="keyword">return</span> HttpResponse(<span class="string">'&lt;h1&gt;Hello, Django!&lt;/h1&gt;'</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">urlpatterns = [</span><br><span class="line">    path(<span class="string">'admin/'</span>, admin.site.urls),</span><br><span class="line">    path(<span class="string">''</span>, index), <span class="comment"># 当访问时不添加任何资源路径，返回index</span></span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<p>完成以上步骤之后，我们再次访问<a href="https://127.0.0.1:8000/" target="_blank" rel="noopener">https://127.0.0.1:8000/</a> 会发现，django默认界面不见了，取而代之的是我们写好的“Hello，Django！”</p>
+<h5 id="Django-ORM对象关系映射框架"><a href="#Django-ORM对象关系映射框架" class="headerlink" title="Django ORM对象关系映射框架"></a>Django ORM对象关系映射框架</h5><ul>
+<li>向数据库存数据的时候：对象变关系</li>
+<li>从数据库读数据的时候：关系变对象</li>
+</ul>
+<p>python中为我们提供了对象模型，而mySQL中采用的却是关系模型，这两种模型是不匹配的。</p>
+<p>比如说我们在python中创建了一个类Fruit，然后我们创建了一个Fruit的对象fruit；按照面向对象的思路。我们想删除这个对象时，我们可以使用类方法，比如说<code>fruit.delete()</code>就能删除这个对象，<code>fruit.save()</code>就能添加这个对象。</p>
+<p>而在数据库中，我们却不能采用这种方法，我们需要先创建一个游标对象cursor，然后用<code>cursor.execute(&#39;insert into tb_fruit values (%s, %s)&#39;)</code>来添加数据。</p>
+<p>如果没有ORM框架，我们需要在python中利用拼接字符串的方法来写sql的语句，这就非常麻烦了。</p>
+<p>而django中的ORM就能帮助我们解决这些矛盾，当我们从sql数据库中拿到数据的时候，ORM框架就能把自动帮我们把这些数据转换成python对象。这样虽然方便，但是会以牺牲性能为代价。</p>
+<h4 id="教师投票应用"><a href="#教师投票应用" class="headerlink" title="教师投票应用"></a>教师投票应用</h4><ul>
+<li>在models.py中建立模型</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Subject</span><span class="params">(models.Model)</span>:</span></span><br><span class="line">    <span class="string">"""学科模型类"""</span></span><br><span class="line">		</span><br><span class="line">    no = models.AutoField(primary_key=<span class="literal">True</span>, verbose_name=<span class="string">'编号'</span>)</span><br><span class="line">    name = models.CharField(max_length=<span class="number">20</span>, verbose_name=<span class="string">'名称'</span>)</span><br><span class="line">    intro = models.CharField(max_length=<span class="number">1000</span>, verbose_name=<span class="string">'介绍'</span>)</span><br><span class="line">    is_hot = models.BooleanField(default=<span class="literal">False</span>, verbose_name=<span class="string">'是否热门'</span>)</span><br><span class="line">    memo = models.CharField(max_length=<span class="number">256</span>, null=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">	<span class="string">"""这里我们需要在学科类中再声明一个Meta类来定义该学科类的一些属性"""</span></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">    	  <span class="comment"># 把该学科类绑定到sql数据库的一张表“tb_subject”上</span></span><br><span class="line">        db_table = <span class="string">'tb_subject'</span></span><br><span class="line">        verbose_name = <span class="string">'学科'</span></span><br><span class="line">        verbose_name_plural = <span class="string">'学科'</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在setting.py中的“INSTALLED_APPS”中添加我们的投票应用“polls”</li>
+</ul>
+<p><img data-src="/images/pasted-15.png" alt="setting.py中的“INSTALLED_APPS”"></p>
+<ul>
+<li><p>在pycharm的终端中执行牵引操作，把我们的模型变成表添加到sql数据库中。生成迁移<code>python manage.py makemigrations polls</code>执行该操作之后，会在polls目录下生成一个migration的迁移文件；执行迁移<code>python manage.py migrate</code>，把刚才生成的迁移直接变成数据库中的表</p>
+</li>
+<li><p>在执行完迁移之后我们访问我们的数据库，查看所有的表<code>show tables</code>，我们可以看见我们刚刚创建的那张表“tb_subject”,然后我们可以向这张表中添加一些字段</p>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">insert into tb_subject (name, intro) values </span><br><span class="line">('Python+人工智能', 'Python是一种跨平台的计算机程序设计语言。是一种面向对象的动态类型语言，最初被设计用于编写自动化脚本(shell)，随着版本的不断更新和语言新功能的添加，越来越多被用于独立的、大型项目的开发。'),</span><br><span class="line">('JavaEE+分布式', 'Java是一门面向对象编程语言，不仅吸收了C++语言的各种优点，还摒弃了C++里难以理解的多继承、指针等概念，因此Java语言具有功能强大和简单易用两个特征。Java语言作为静态面向对象编程语言的代表，极好地实现了面向对象理论，允许程序员以优雅的思维方式进行复杂的编程。'),</span><br><span class="line">('HTML5+跨平台', 'HTML5是构建Web内容的一种语言描述方式。HTML5是互联网的下一代标准，是构建以及呈现互联网内容的一种语言方式．被认为是互联网的核心技术之一。HTML产生于1990年，1997年HTML4成为互联网标准，并广泛应用于互联网应用的开发。');</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建一个首页去获取数据库中的数据并展示出来</li>
+</ul>
+<p>接下来我们回到views.py文件中，重写index视图函数</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""首页"""</span></span><br><span class="line">    <span class="string">"""注意这里要导入Subject"""</span></span><br><span class="line">    <span class="string">"""Subject继承了Model类，而Model类中给模型绑定了一个objects的属性，而这个objects就是模型的管理器对象，其中有一个all的方法，通过该方法可以拿到模型中的所有对象，并返回一个叫queryset的查询集对象"""</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    context = &#123;</span><br><span class="line">        <span class="string">'subjects'</span>: queryset</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> render(request, <span class="string">'index.html'</span>, context)</span><br></pre></td></tr></table></figure>
+<p>渲染页面：在templates目录下创建index.html</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>首页<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h2</span>&gt;</span>所有学科<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">hr</span>&gt;</span></span><br><span class="line">    &#123;% for subject in subjects %&#125;</span><br><span class="line">    <span class="comment">&lt;!--  Django模板页，可以使用Django模板语言模板指令来生成动态内容  --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"subject"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.intro &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    &#123;% endfor %&#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h5 id="django自带的管理员平台"><a href="#django自带的管理员平台" class="headerlink" title="django自带的管理员平台"></a>django自带的管理员平台</h5><p>访问<a href="https://127.0.0.1:8000/admin/" target="_blank" rel="noopener">https://127.0.0.1:8000/admin/</a> 我们会发现 django已经为我们内置了一个管理中心，通过该管理中心，我们能很方便地管理模型中的所有的对象，但是这个中心需要登录才能使用</p>
+<p><img data-src="/images/pasted-16.png" alt="django自带的管理员平台"></p>
+<ul>
+<li><p>打开我们的项目的pycharm终端，输入<code>python manage.py createsuperuser</code>回车之后会让你创建一组用户名和密码口令（如果不输入就默认是登录本机时使用的账号和密码口令）</p>
+</li>
+<li><p>注册自己的模型：在应用目录“polls”中，我们能找到一个叫“admin.py”的文件，在这个文件中我们可以注册我们的模型</p>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">admin.site.register(Subject)</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-17.png" alt="Subject模型"></p>
+<ul>
+<li>verbose_name/verbose_name_plural:可以在创建模型的时候传入参数指定字段的显示</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Subject</span><span class="params">(models.Model)</span>:</span></span><br><span class="line">    <span class="string">"""学科模型类"""</span></span><br><span class="line"></span><br><span class="line">    no = models.AutoField(primary_key=<span class="literal">True</span>, verbose_name=<span class="string">'编号'</span>)</span><br><span class="line">    name = models.CharField(max_length=<span class="number">20</span>, verbose_name=<span class="string">'名称'</span>)</span><br><span class="line">    intro = models.CharField(max_length=<span class="number">1000</span>, verbose_name=<span class="string">'介绍'</span>)</span><br><span class="line">    is_hot = models.BooleanField(default=<span class="literal">False</span>, verbose_name=<span class="string">'是否热门'</span>)</span><br><span class="line">    memo = models.CharField(max_length=<span class="number">256</span>, null=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.name</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        db_table = <span class="string">'tb_subject'</span></span><br><span class="line">        verbose_name = <span class="string">'学科'</span></span><br><span class="line">        <span class="comment"># 复数的显示</span></span><br><span class="line">        verbose_name_plural = <span class="string">'学科'</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>同时我们还可以在注册模型的时候定制模型的显示： 我们可以在“admin.py”中申明一个模型管理的类“SubjectAdmin”，在“admin”中的“ModelAdmin”这一个类中，提供了“list_display”的方法，可以定制模型的显示</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectAdmin</span><span class="params">(admin.ModelAdmin)</span>:</span></span><br><span class="line">	 <span class="comment"># 设定显示内容</span></span><br><span class="line">    list_display = (<span class="string">'no'</span>, <span class="string">'name'</span>, <span class="string">'intro'</span>)</span><br><span class="line">    <span class="comment"># 设定点击跳转的字段，不设定时默认为主键可点击跳转查看</span></span><br><span class="line">    list_display_links = (<span class="string">'name'</span>,)</span><br><span class="line">    <span class="comment"># 设定可用于搜索的字段</span></span><br><span class="line">    search_fields = (<span class="string">'name'</span>,)</span><br><span class="line">    设定排序规则</span><br><span class="line">    ordering = (<span class="string">'no'</span>,)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">admin.site.register(Subject, SubjectAdmin)</span><br></pre></td></tr></table></figure>
+
+<h5 id="静态资源路径的设置"><a href="#静态资源路径的设置" class="headerlink" title="静态资源路径的设置"></a>静态资源路径的设置</h5><p>为方便实验，我们直接在项目的根目录下，与模板（templates）平级，创建“static”文件夹，用于存放项目所需的静态资源。我们的静态资源一般分为三类：images（图片文件）、css（样式表）、js文件，我们可以直接在“static”文件目录下创建这三个文件夹。</p>
+<p><img data-src="/images/pasted-19.png" alt="创建静态资源路径"></p>
+<p>配置好静态资源目录之后，我们还需要在配置文件中对调用静态资源的路径进行配置，在“setting.py”中,我们需要进行如下设置</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 指定静态资源所在的文件的路径</span></span><br><span class="line">STATICFILES_DIRS = [os.path.join(BASE_DIR, <span class="string">'static'</span>), ]</span><br><span class="line"><span class="comment"># 指定静态资源在调用时路径名前缀（注意，这里的/static/和文件夹“static”无关，可以随便命名）</span></span><br><span class="line">STATIC_URL = <span class="string">'/static/'</span></span><br></pre></td></tr></table></figure>
+
+<p>这个时候我们就可以往我们的页面中插入图片了，这里我们给热门学科后面加上一把小火苗</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>首页<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h2</span>&gt;</span>所有学科<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">hr</span>&gt;</span></span><br><span class="line">    &#123;% for subject in subjects %&#125;</span><br><span class="line">    <span class="comment">&lt;!--  Django模板页，可以使用Django模板语言模板指令来生成动态内容  --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"subject"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;</span><br><span class="line">        &#123;% if subject.is_hot %&#125;</span><br><span class="line">       	 <span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">"/static/images/hotfire.png"</span>&gt;</span></span><br><span class="line">        &#123;% endif %&#125;</span><br><span class="line">        <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.intro &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    &#123;% endfor %&#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-20.png" alt="给热门学科添加小火苗"></p>
+<h5 id="创建老师的模型"><a href="#创建老师的模型" class="headerlink" title="创建老师的模型"></a>创建老师的模型</h5><p>我们要做的是一个给老师投票的应用，现在我们的学科模型已经建立好了，接下来我们要建立老师的模型。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Teacher</span><span class="params">(models.Model)</span>:</span></span><br><span class="line">    <span class="string">"""老师（模型类）"""</span></span><br><span class="line">    no = models.AutoField(primary_key=<span class="literal">True</span>, verbose_name=<span class="string">'工号'</span>)</span><br><span class="line">    name = models.CharField(max_length=<span class="number">20</span>, verbose_name=<span class="string">'姓名'</span>)</span><br><span class="line">    gender = models.BooleanField(default=<span class="literal">True</span>, verbose_name=<span class="string">'性别'</span>)</span><br><span class="line">    birth = models.DateField(verbose_name=<span class="string">'出生日期'</span>)</span><br><span class="line">    photo = models.ImageField(upload_to=<span class="string">'images'</span>, default=<span class="string">''</span>, max_length=<span class="number">512</span>, verbose_name=<span class="string">'头像'</span>)</span><br><span class="line">    intro = models.CharField(default=<span class="string">''</span>, max_length=<span class="number">1000</span>, verbose_name=<span class="string">'介绍'</span>)</span><br><span class="line">    good_count = models.PositiveIntegerField(default=<span class="number">0</span>, verbose_name=<span class="string">'好评数'</span>)</span><br><span class="line">    bad_count = models.IntegerField(default=<span class="number">0</span>, verbose_name=<span class="string">'差评数'</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="string">"""老师和学科之间是多对一的关系，一个学科中可以有多个老师，而一个老师通常只属于一个学科，这个时候我们就需要用到外键约束了，外键约束一般添加到多的一方"""</span></span><br><span class="line">    subject = models.ForeignKey(to=Subject, on_delete=models.PROTECT, db_column=<span class="string">'sno'</span>, verbose_name=<span class="string">'所属学科'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        db_table = <span class="string">'tb_teacher'</span></span><br><span class="line">        verbose_name = <span class="string">'老师'</span></span><br><span class="line">        verbose_name_plural = <span class="string">'老师'</span></span><br></pre></td></tr></table></figure>
+<p>模型建立之后要再次进行模型的迁移：<code>python manage.py makemigrations polls</code>，<code>python manage.py migrate</code>，之后我们新建的模型就能生效啦。然后我们在“admin.py”中注册老师的模型</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TeacherAdmin</span><span class="params">(admin.ModelAdmin)</span>:</span></span><br><span class="line">    list_display = (<span class="string">'no'</span>, <span class="string">'name'</span>, <span class="string">'gender'</span>, <span class="string">'birth'</span>, <span class="string">'intro'</span>, <span class="string">'good_count'</span>, <span class="string">'bad_count'</span>,)</span><br><span class="line">    list_display_links = (<span class="string">'no'</span>, <span class="string">'name'</span>,)</span><br><span class="line">    search_fields = (<span class="string">'name'</span>, )</span><br><span class="line">    ordering = (<span class="string">'no'</span>, )</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">admin.site.register(Teacher, TeacherAdmin)</span><br></pre></td></tr></table></figure>
+
+<h5 id="对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面"><a href="#对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面" class="headerlink" title="对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面"></a>对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面</h5><p>我们先回到主页的模板文件“index.html”中，把学科名的<code>&lt;p&gt;</code>标签换成超链接<code>&lt;a&gt;</code>标签，我们可以设计一个这样的标签</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"/teachers/?sno=&#123;&#123;subject.no&#125;&#125;"</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们要在url后面加参数需要用<code>?</code>来表示，如<code>&lt;a href=&quot;/teachers/?a=b&amp;c=d&lt;/a&gt;</code>，这表示我们要引入两组参数，a=b，c=d。这里因为我们点击该学科的名称后想要看到该学科对应的所有的老师的信息，而通过我们建立的老师和学科的模型我们可以知道老师和学科靠外键“学科编号”产生关联，因此这里我们最好引入学科编号作为参数。</p>
+<p>设置好之后，我们回到主页面，把我们的鼠标悬停在学科名上，然后查看浏览器窗口右下角我们会发现</p>
+<p><img data-src="/images/pasted-21.png" alt="悬停在学科名上"></p>
+<h5 id="设置显示老师的视图函数"><a href="#设置显示老师的视图函数" class="headerlink" title="设置显示老师的视图函数"></a>设置显示老师的视图函数</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show_teachers</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""显示指定学科的老师"""</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">    <span class="string">"""我们在点击学科的时候通过GET请求拿到“sno”这个参数"""</span></span><br><span class="line">        sno = request.GET[<span class="string">'sno'</span>]</span><br><span class="line">        <span class="string">"""拿到学科编号之后，我们就可以在学科模型中查询我们拿到的编号所对应的学科""</span></span><br><span class="line"><span class="string">        subject = Subject.objects.get(no=sno)</span></span><br><span class="line"><span class="string">        """</span>拿到学科编号之后，我们就可以在老师模型中查询我们拿到的编号所对应的老师，这里注意，老师模型中并没有学科编号，只有学科字段，学科编号是学科中的信息，因此我们通过subject__no的方式拿到学科编号<span class="string">"""</span></span><br><span class="line"><span class="string">        queryset = Teacher.objects.filter(subject__no=sno)</span></span><br><span class="line"><span class="string">        context = &#123;</span></span><br><span class="line"><span class="string">            'subject': subject,</span></span><br><span class="line"><span class="string">            'teachers': queryset</span></span><br><span class="line"><span class="string">        &#125;</span></span><br><span class="line"><span class="string">			"""</span>返回渲染一个teachers.html的页面<span class="string">"""</span></span><br><span class="line"><span class="string">        return render(request, 'teachers.html', context)</span></span><br><span class="line"><span class="string">    except (KeyError, ValueError, Subject.DoseNotExist):</span></span><br><span class="line"><span class="string">        return redirect('/')</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="创建老师信息的模板页"><a href="#创建老师信息的模板页" class="headerlink" title="创建老师信息的模板页"></a>创建老师信息的模板页</h5><p>由老师的视图函数可以知道，函数执行完最终会渲染一个teachers.html的页面，因此，我们需要创建这个页面，在“templates”文件夹下新建“teachers.html”</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>首页<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="css">        <span class="selector-class">.photo</span>&#123;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">margin-top</span><span class="selector-pseudo">:30px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">width</span><span class="selector-pseudo">:140px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">height</span><span class="selector-pseudo">:140px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">float</span><span class="selector-pseudo">:left</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">border-radius</span><span class="selector-pseudo">:70px</span> 70<span class="selector-tag">px</span> 70<span class="selector-tag">px</span> 70<span class="selector-tag">px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">overflow</span><span class="selector-pseudo">:hidden</span></span></span><br><span class="line">        &#125;</span><br><span class="line"><span class="css">        <span class="selector-class">.content</span>&#123;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">margin</span><span class="selector-pseudo">:60px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">width</span><span class="selector-pseudo">:580px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">float</span><span class="selector-pseudo">:left</span>;</span></span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"><span class="css">        <span class="selector-class">.teacher</span>&#123;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">clear</span><span class="selector-pseudo">:both</span>;</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h2</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;学科老师的信息<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">hr</span>&gt;</span></span><br><span class="line">    &#123;% for teacher in teachers %&#125;</span><br><span class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"teacher"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"photo"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">"&#123;&#123; teacher.photo.url &#125;&#125;"</span> <span class="attr">width</span>=<span class="string">"140px"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!--  Django模板页，可以使用Django模板语言模板指令来生成动态内容  --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"content"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">p</span>&gt;</span></span><br><span class="line">                &#123;&#123; teacher.name &#125;&#125;<span class="symbol">&amp;nbsp;</span><span class="symbol">&amp;nbsp;</span></span><br><span class="line">                &#123;&#123;teacher.gender | yesno:"男, 女"&#125;&#125;<span class="symbol">&amp;nbsp;</span><span class="symbol">&amp;nbsp;</span></span><br><span class="line">                &#123;&#123;teacher.birth&#125;&#125;</span><br><span class="line">            <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; teacher.intro &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">p</span> <span class="attr">class</span>=<span class="string">"comment"</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"/good/?tno=&#123;&#123; teacher.no &#125;&#125;"</span>&gt;</span>好评<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">span</span>&gt;</span>&#123;&#123; teacher.good_count&#125;&#125;<span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br><span class="line"></span><br><span class="line">                <span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"/bad/?tno=&#123;&#123; teacher.no &#125;&#125;"</span>&gt;</span>差评<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">span</span>&gt;</span>&#123;&#123; teacher.bad_count&#125;&#125;<span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    &#123;% endfor %&#125;</span><br><span class="line">    </span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>最后我们还需要设置url路径，在“urls.py”文件中的“urlpatterns”中添加如下代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">path(<span class="string">'teachers/'</span>, show_teachers),</span><br></pre></td></tr></table></figure>
+<p>上述代码表示访问’teachers/‘时会调用“show_teachers”函数。之后我们访问我们的首页，点击学科之后就能看见老师的信息了。</p>
+<h5 id="投票的实现"><a href="#投票的实现" class="headerlink" title="投票的实现"></a>投票的实现</h5><p>在前面我们创建的老师的模板页中，我们为每个老师添加了好评和差评的<code>&lt;a&gt;</code>标签，以及可以显示票数的<code>&lt;span&gt;</code>标签，依照之前的步骤，我们需要创建好评与差评的视图函数，然后在“urls.py”文件中映射路径。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">praise_or_criticize</span><span class="params">(request)</span>:</span></span><br><span class="line"></span><br><span class="line">	tno = request.GET.get(<span class="string">'tno'</span>, <span class="string">'0'</span>)</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		teacher = Teacher.objects.get(no=tno)</span><br><span class="line">     <span class="string">"""request对象中包含有path属性，可以拿到请求的路径"""</span></span><br><span class="line">		<span class="keyword">if</span> request.path.startswith(<span class="string">'/good'</span>):</span><br><span class="line">			teacher.good_count += <span class="number">1</span></span><br><span class="line">		<span class="keyword">else</span>:</span><br><span class="line">			teacher.bad_count += <span class="number">1</span></span><br><span class="line">		teacher.save()</span><br><span class="line">	<span class="keyword">except</span> (ValueError, Teacher.DoesNotExist):</span><br><span class="line">		<span class="keyword">pass</span></span><br><span class="line">	<span class="keyword">return</span> redirect(<span class="string">f'/teachers/?sno=<span class="subst">&#123;sno&#125;</span>'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>写完了视图函数之后别忘了在“urls.py”文件中设置映射路径，在“urlpatterns”中添加</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">path(<span class="string">'good/'</span>, praise_or_criticize),</span><br><span class="line">path(<span class="string">'bad/'</span>, praise_or_criticize),</span><br></pre></td></tr></table></figure>
+
+<p>好了，现在我们看看，在首页点击学科进入老师界面之后是不是就可以对老师投票了呢？</p>
+<h4 id="功能的完善（提高）"><a href="#功能的完善（提高）" class="headerlink" title="功能的完善（提高）"></a>功能的完善（提高）</h4><h5 id="ajax异步请求实现界面的局部刷新"><a href="#ajax异步请求实现界面的局部刷新" class="headerlink" title="ajax异步请求实现界面的局部刷新"></a>ajax异步请求实现界面的局部刷新</h5><p>虽然我们已经简单的实现了给老师投票的功能，但是我们也发现了，当我们点击好评或差评的按钮时，不仅数字会发生变化，整个界面也会跟着刷新。这是完全没有必要的，因为页面中的其他数据并没有发生变化，不需要刷新，所以说这里我们可以通过引入ajax，实现页面的局部刷新，在进行投票的时候，只对票数进行刷新，页面的其他部分不发生变化。</p>
+<p>这里我们需要修改视图函数“praise_or_criticize”</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">praise_or_criticize</span><span class="params">(request)</span>:</span></span><br><span class="line"></span><br><span class="line">	tno = request.GET.get(<span class="string">'tno'</span>, <span class="string">'0'</span>)</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		teacher = Teacher.objects.get(no=tno)</span><br><span class="line">     <span class="string">"""request对象中包含有path属性，可以拿到请求的路径"""</span></span><br><span class="line">		<span class="keyword">if</span> request.path.startswith(<span class="string">'/good'</span>):</span><br><span class="line">			teacher.good_count += <span class="number">1</span></span><br><span class="line">		<span class="keyword">else</span>:</span><br><span class="line">			teacher.bad_count += <span class="number">1</span></span><br><span class="line">		teacher.save()</span><br><span class="line">     <span class="string">"""这里我们创建一个data字典用来保存函数执行的结果"""</span></span><br><span class="line">		data = &#123;<span class="string">'code'</span>: <span class="number">10000</span>, <span class="string">'message'</span>: <span class="string">'操作成功'</span>&#125;</span><br><span class="line">	<span class="keyword">except</span> (ValueError, Teacher.DoesNotExist):</span><br><span class="line">		data = &#123;<span class="string">'code'</span>: <span class="number">10001</span>, <span class="string">'message'</span>: <span class="string">'操作失败'</span>&#125;</span><br><span class="line">     <span class="string">"""把函数执行结果转化为json数据然后作为返回值，之前我们都是直接返回渲染界面，现在直接在模板中通过ajax来做异步请求"""</span></span><br><span class="line">	<span class="keyword">return</span> JsonResponse(data)</span><br></pre></td></tr></table></figure>
+<p>改完了视图函数之后我们在“teachers.html”模板中添加如下代码，这里需要用到Jquery</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">src</span>=<span class="string">"https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"</span>&gt;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="actionscript">   <span class="comment">// $()函数中的箭头函数是页面加载完成之后要执行的回调函数</span></span></span><br><span class="line"><span class="javascript">   $(() =&gt; &#123;</span></span><br><span class="line"><span class="javascript">       <span class="keyword">let</span> flag = <span class="literal">true</span></span></span><br><span class="line"><span class="actionscript">       <span class="comment">// 通过$(选择器)获取页面元素绑定点击事件</span></span></span><br><span class="line"><span class="actionscript">       <span class="comment">// on方法的第一个参数是事件名 第二个参数是事件回调函数</span></span></span><br><span class="line"><span class="actionscript">       <span class="comment">// 事件回调函数的参数evt是代表事件的对象</span></span></span><br><span class="line"><span class="javascript">       $(<span class="string">'.comment&gt;a'</span>).on(<span class="string">'click'</span>, (evt) =&gt; &#123;</span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 阻止事件默认行为（避免直接刷新页面）</span></span></span><br><span class="line">           evt.preventDefault()</span><br><span class="line"><span class="actionscript">           <span class="comment">// 通过事件对象获取事件源并由$函数转成jQuery对象</span></span></span><br><span class="line">           if(flag)&#123;</span><br><span class="line"><span class="actionscript">            <span class="comment">// 实现函数节流</span></span></span><br><span class="line"><span class="actionscript">           flag = <span class="literal">false</span></span></span><br><span class="line"><span class="javascript">           setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> &#123; flag = <span class="literal">true</span> &#125;, <span class="number">2000</span>)</span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 这里的evt.target就相当于this，即事件源，但是直接取evt.target拿到的是原生的js对象，这里我们需要把它放在$()中转化为一个jQuery对象      </span></span></span><br><span class="line"><span class="javascript">           <span class="keyword">let</span> anchor = $(evt.target)</span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 通过jQuery对象的getJSON方法发起Ajax请求</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// getJSON方法：发出get请求拿回json数据</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// attr()是jQuery中的一个对象方法，可以拿到对象的属性</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 第一个参数是请求事件源对应的URL</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 第二个参数是请求完成之后要执行的回调函数  </span></span></span><br><span class="line"><span class="javascript">           $.getJSON(anchor.attr(<span class="string">'href'</span>), (json) =&gt; &#123;</span></span><br><span class="line"><span class="actionscript">               <span class="keyword">if</span> (json.code == <span class="number">10000</span>) &#123; <span class="comment">// 投票成功</span></span></span><br><span class="line"><span class="actionscript">                   <span class="comment">// 获取与a标签相邻的span标签</span></span></span><br><span class="line"><span class="javascript">                   <span class="keyword">let</span> span = anchor.next()</span></span><br><span class="line"><span class="actionscript">                   <span class="comment">// 将span标签的值加1再写回span标签</span></span></span><br><span class="line"><span class="javascript">                   span.text(<span class="built_in">parseInt</span>(span.text()) + <span class="number">1</span>)</span></span><br><span class="line"></span><br><span class="line"><span class="actionscript">               &#125; <span class="keyword">else</span>&#123;</span></span><br><span class="line">                   alert(json.message)</span><br><span class="line">                   if (json.code == 10002)&#123;</span><br><span class="line"><span class="actionscript">                   location.href = <span class="string">'/login/?backurl='</span>+ btoa(<span class="string">'/teachers/?sno=&#123;&#123; subject.no &#125;&#125;'</span>)&#125;</span></span><br><span class="line">               &#125;</span><br><span class="line">           &#125;)</span><br><span class="line"><span class="actionscript">           &#125;<span class="keyword">else</span>&#123;</span></span><br><span class="line"><span class="actionscript">               alert(<span class="string">'操作太频繁'</span>)</span></span><br><span class="line">           &#125;</span><br><span class="line">       &#125;)</span><br><span class="line">   &#125;)</span><br><span class="line">   <span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：以上代码除了实现异步请求，还完成了数据节流的功能，让用户每隔两秒才能点击一次</p>
+<h5 id="登陆功能的实现"><a href="#登陆功能的实现" class="headerlink" title="登陆功能的实现"></a>登陆功能的实现</h5>
+    </div>
+
+    <div>
+      
+      <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">------ 本文结束------</div>
+    
+</div>
+
+      
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div></div>
+  <button disable="enable" onclick="var qr = document.getElementById(&quot;qr&quot;); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    打赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechat.png" alt="霖 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.jpg" alt="霖 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>霖
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://hanlin.fun/django-ji-chu/" title="Django基础与投票应用">https://hanlin.fun/django-ji-chu/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/mySQL/" rel="tag"><i class="fa fa-tag"></i> mySQL</a>
+              <a href="/tags/django/" rel="tag"><i class="fa fa-tag"></i> django</a>
+              <a href="/tags/Python/" rel="tag"><i class="fa fa-tag"></i> Python</a>
+          </div>
+
+        
+
+
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/redis-de-he-xin-shu-ju-lei-xing/" rel="prev" title="Redis的核心数据类型">
+      <i class="fa fa-chevron-left"></i> Redis的核心数据类型
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/django-zhong-zuo-qian-hou-duan-fen-chi-de-kai-fa/" rel="next" title="Django中做前后端分离的开发">
+      Django中做前后端分离的开发 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+    <!-- 解决不了，这个是分享二维码，暂时用不了 -->
+    <!-- <div class="pjaxqrcode" id="qrcode"></div>
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script>
+  $('#qrcode').qrcode(window.location.href);
+</script> -->
+
+    
+
+
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Django简介"><span class="nav-number">1.</span> <span class="nav-text">Django简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建并运行Django项目"><span class="nav-number">2.</span> <span class="nav-text">创建并运行Django项目</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#方法一"><span class="nav-number">2.1.</span> <span class="nav-text">方法一</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#方法二"><span class="nav-number">2.2.</span> <span class="nav-text">方法二</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#方法三"><span class="nav-number">2.3.</span> <span class="nav-text">方法三</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#django投票项目"><span class="nav-number">3.</span> <span class="nav-text">django投票项目</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#django项目创建"><span class="nav-number">3.1.</span> <span class="nav-text">django项目创建</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设置配置文件"><span class="nav-number">3.2.</span> <span class="nav-text">设置配置文件</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#数据库设置"><span class="nav-number">3.2.1.</span> <span class="nav-text">数据库设置</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#创建应用"><span class="nav-number">3.2.2.</span> <span class="nav-text">创建应用</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#配置视图文件和urls统一资源定位符管理文件实现简单的访问"><span class="nav-number">3.2.3.</span> <span class="nav-text">配置视图文件和urls统一资源定位符管理文件实现简单的访问</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Django-ORM对象关系映射框架"><span class="nav-number">3.2.4.</span> <span class="nav-text">Django ORM对象关系映射框架</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#教师投票应用"><span class="nav-number">3.3.</span> <span class="nav-text">教师投票应用</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#django自带的管理员平台"><span class="nav-number">3.3.1.</span> <span class="nav-text">django自带的管理员平台</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#静态资源路径的设置"><span class="nav-number">3.3.2.</span> <span class="nav-text">静态资源路径的设置</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#创建老师的模型"><span class="nav-number">3.3.3.</span> <span class="nav-text">创建老师的模型</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面"><span class="nav-number">3.3.4.</span> <span class="nav-text">对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#设置显示老师的视图函数"><span class="nav-number">3.3.5.</span> <span class="nav-text">设置显示老师的视图函数</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#创建老师信息的模板页"><span class="nav-number">3.3.6.</span> <span class="nav-text">创建老师信息的模板页</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#投票的实现"><span class="nav-number">3.3.7.</span> <span class="nav-text">投票的实现</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#功能的完善（提高）"><span class="nav-number">3.4.</span> <span class="nav-text">功能的完善（提高）</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#ajax异步请求实现界面的局部刷新"><span class="nav-number">3.4.1.</span> <span class="nav-text">ajax异步请求实现界面的局部刷新</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#登陆功能的实现"><span class="nav-number">3.4.2.</span> <span class="nav-text">登陆功能的实现</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="霖"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">霖</p>
+  <div class="site-description" itemprop="description">センスに自信がある</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="sidebar-button motion-element">
+    <a onclick="tidioChatApi.open();"><i class="fa fa-comment"></i>
+    Chat
+  </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zzd6263165" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;zzd6263165" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:541276587@qq.com" title="E-Mail → mailto:541276587@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="tencent://AddContact/?fromId=50&fromSubId=1&subcmd=all&uin=541276587" title="QQ → tencent:&#x2F;&#x2F;AddContact&#x2F;?fromId&#x3D;50&amp;fromSubId&#x3D;1&amp;subcmd&#x3D;all&amp;uin&#x3D;541276587" rel="noopener" target="_blank"><i class="fa fa-fw fa-qq"></i>QQ</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/atom.xml" title="RSS → &#x2F;atom.xml"><i class="fa fa-fw fa-rss"></i>RSS</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      Links
+    </div>
+        <span class="links-of-blogroll-item">
+          <a href="https://tingzai.github.io/" title="https:&#x2F;&#x2F;tingzai.github.io&#x2F;" rel="noopener" target="_blank">婷仔</a>
+        </span>
+        <span class="links-of-blogroll-item">
+          <a href="https://fhlsyol.top/" title="https:&#x2F;&#x2F;fhlsyol.top&#x2F;" rel="noopener" target="_blank">Fhlsyol</a>
+        </span>
+  </div>
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">霖</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">49k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">44 分钟</span>
+</div>
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("12/20/2019 00:00:00");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已侥幸存活 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+
+        
+<div class="busuanzi-count">
+  <script pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        访客数：<span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        访问量：<span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '#pjax',
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML,
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.getAttribute('pjax') !== null) {
+      element.setAttribute('pjax', '');
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+
+</script>
+
+
+  <script defer src="/lib/three/three.min.js"></script>
+
+
+  
+  <script pjax>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+  <script src="//code.tidio.co/k9ughjaj6qve5bhkgq5jehurdlhptpc6.js"></script>
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: '93854aa6f21b4bc50b3a',
+      clientSecret: 'a3bb60bd26cef2a5e4ea26e14be5d975dbff36c1',
+      repo: 'zzd6263165.github.io',
+      owner: 'zzd6263165',
+      admin: ['zzd6263165'],
+      id: '5443b230d3d24be2fd87c7bab9a88e0c',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+  <!-- 音频播放 -->
+<link rel="stylesheet" href="/dist/APlayer.min.css">
+<div id="aplayer"></div>
+<script type="text/javascript" src="/dist/APlayer.min.js"></script>
+<script type="text/javascript" src="/dist/music.js"></script>
+<!-- <script src="/live2d-widget/autoload.js"></script> -->
+<!-- 背景图 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-backstretch/2.0.4/jquery.backstretch.min.js"></script>
+<script>
+$("body").backstretch("images/bg.jpg");
+</script>
+
+<!--崩溃欺骗-->
+<script type="text/javascript" src="/js/src/crash_cheat.js"></script>
+
+</body>
+
+</html>

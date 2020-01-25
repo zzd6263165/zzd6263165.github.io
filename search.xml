@@ -1,0 +1,1407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Django中做前后端分离的开发</title>
+    <url>/django-zhong-zuo-qian-hou-duan-fen-chi-de-kai-fa/</url>
+    <content><![CDATA[<h3 id="前后端分离概述"><a href="#前后端分离概述" class="headerlink" title="前后端分离概述"></a>前后端分离概述</h3><p>前端（英语：front-end）和后端（英语：back-end）是描述进程开始和结束的通用词汇。前端作用于采集输入信息，后端进行处理。计算机程序的界面样式，视觉呈现属于前端。在软体架构和程序设计领域，前端是软体系统中直接和用户交互的部分，而后端控制着软件的输出。将软体分为前端和后端是一种将软体的不同的功能部分相互分离的抽象的划分方式。</p>
+<p>(<a href="https://zh.wikipedia.org/wiki/%E5%89%8D%E7%AB%AF%E5%92%8C%E5%90%8E%E7%AB%AF）" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/%E5%89%8D%E7%AB%AF%E5%92%8C%E5%90%8E%E7%AB%AF）</a></p>
+<p>在传统的Web应用开发中，大多数的程序员会将浏览器作为前后端的分界线。将浏览器中为用户进行页面展示的部分称之为前端，而将运行在服务器，为前端提供业务逻辑和数据准备的所有代码统称为后端。</p>
+<p>相较于使用MVC框架，前后端开发未能分离的时期，前后端分离的开发具有很多的优势：</p>
+<ul>
+<li><p>能够有效地实现前后端代码的解耦合，前后端的开发变得相对独立，且不会出现之前那样相互制约的情况，这为前后端工程师的开发工作提供了极大的便利，开发工作变得更加简单和高效。</p>
+</li>
+<li><p>代码的更新和维护变得更加简单，在前后端代码未能实现较好的解耦合的时期，在对代码进行更新和维护的时候常常会出现牵一发而动全身的现象，而前后端分离的开发则有效地规避了这种现象。</p>
+</li>
+</ul>
+<ul>
+<li>可扩展和可移植性更强，为以后的大型分布式架构、弹性计算架构、微服务架构、多端化服务（多种客户端，例如：浏览器，车载终端，安卓，IOS等等）打下坚实的基础。</li>
+</ul>
+<p>前后端开发的核心思想就是：前端HTML页面通过AJAX调用后端的RESTFUL API接口并使用JSON数据进行交互。</p>
+<h3 id="后端"><a href="#后端" class="headerlink" title="后端"></a>后端</h3><p>诚如上文中提到的那样，在前后端分离的开发模式下，后端的工作主要是为前端提供数据接口，而这些接口提供的通常是JSON格式的数据。</p>
+<p>在Django的框架下，我们可以利用它自带的函数<code>JsonResponse</code>向浏览器返回Json格式的数据</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show_subjects</span><span class="params">(request)</span>:</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    subjects = []</span><br><span class="line">    <span class="keyword">for</span> subject <span class="keyword">in</span> queryset:</span><br><span class="line">        subjects.append(&#123;</span><br><span class="line">            <span class="string">'no'</span>: subject.no,</span><br><span class="line">            <span class="string">'name'</span>: subject.name,</span><br><span class="line">            <span class="string">'intro'</span>: subject.intro,</span><br><span class="line">            <span class="string">'isHot'</span>: subject.is_hot</span><br><span class="line">        &#125;)</span><br><span class="line">    <span class="keyword">return</span> JsonResponse(subjects, safe=<span class="literal">False</span>)</span><br><span class="line">    <span class="string">"""这里需要注意，JsonResponse默认是将列表序列化成json格式的数据，当我们希望对字典对象进行序列化时，必须指定参数safe为False，否则会出现TypeError的错误"""</span></span><br></pre></td></tr></table></figure>
+
+<p>通过上述示例我们可以发现，在使用<code>JsonResponse</code>对数据进行序列化之前，我们需要先手动将<code>queryset</code>查询集对象转换为列表或者字典，那有没有什么方法或者工具能帮我们自动完成这个过程呢？</p>
+<p>在Django中，我们可以使用第三方库<code>bpmappers</code>来协助我们将<code>queryset</code>查询集转换成字典或者列表，有了这个工具，我们就可以改写上面的代码了。</p>
+<h4 id="安装bpmappers"><a href="#安装bpmappers" class="headerlink" title="安装bpmappers"></a>安装<code>bpmappers</code></h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">pip install bpmappers</span><br></pre></td></tr></table></figure>
+
+<h4 id="编写映射器"><a href="#编写映射器" class="headerlink" title="编写映射器"></a>编写映射器</h4><p>我们可以在应用目录下新建一个名为“mappers.py”的py文件来配置映射器</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> bpmappers.djangomodel <span class="keyword">import</span> ModelMapper</span><br><span class="line"><span class="comment"># 这里要导入ModelMapper和我们创建的Subject模型</span></span><br><span class="line"><span class="keyword">from</span> poll.models <span class="keyword">import</span> Subject</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectMapper</span><span class="params">(ModelMapper)</span>:</span></span><br><span class="line">   </span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        model = Subject</span><br><span class="line"><span class="comment"># 指定映射器要映射的模型</span></span><br></pre></td></tr></table></figure>
+
+<p>编写好映射器之后我们就可以对我们的视图函数进行改写了</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show_subjects</span><span class="params">(request)</span>:</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    subjects = []</span><br><span class="line">    <span class="keyword">for</span> subject <span class="keyword">in</span> queryset:</span><br><span class="line">        subjects.append(SubjectMapper(subject).as_dict())</span><br><span class="line">    <span class="keyword">return</span> JsonResponse(subjects, safe=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+
+<p>如上述代码所示，我们在<code>mappers.py</code>中创建的映射器会帮助我们将<code>queryset</code>查询集中的对象转换成字典，之后我们再将这些字典数据放到列表中，最后利用<code>JsonResponse</code>进行序列化。这样的方式在针对有很多字段的复杂的表的时候，其效率远远高于手动转换。</p>
+<p>上述的这些通过在视图里使用函数来处理前端请求的方式我们把它称为FBV，即基于函数的视图。</p>
+<p>然而，Python是一个面向对象的编程语言，如果只用函数来开发，有很多面向对象的优点就错失了（继承、封装、多态）。所以Django在后来加入了CBV。可以让我们用类写视图。这样做的优点主要下面两种：</p>
+<ul>
+<li><p>提高了代码的复用性，可以使用面向对象的技术，比如Mixin（多继承）</p>
+</li>
+<li><p>可以用不同的函数针对不同的HTTP方法处理，而不是通过很多if判断，提高代码可读性</p>
+</li>
+</ul>
+<h3 id="DRF-Django-REST-framework"><a href="#DRF-Django-REST-framework" class="headerlink" title="DRF-Django REST framework"></a>DRF-Django REST framework</h3><p>在Django框架中，我们可以使用第三方库<code>djangorestframework</code></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">pip install djangorestframework</span><br></pre></td></tr></table></figure>
+<p>在安装了第三方库<code>djangorestframework</code>之后，我们可以在项目目录下创建一个名为“serializers.py”的py文件</p>
+<p>然后在这个文件中创建序列化所需要的类</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> rest_framework <span class="keyword">import</span> serializers</span><br><span class="line"><span class="keyword">from</span> poll.models <span class="keyword">import</span> Subject</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectSerializer</span><span class="params">(serializers.ModelSerializer)</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        model = Subject</span><br><span class="line">        fields = (<span class="string">'no'</span>, <span class="string">'name'</span>, <span class="string">'intro'</span>, <span class="string">'isHot'</span>)</span><br></pre></td></tr></table></figure>
+<p>然后我们再次对视图进行改写</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> rest_framework.viewsets <span class="keyword">import</span> ModelViewSet</span><br><span class="line"><span class="keyword">from</span> poll.serializers <span class="keyword">import</span> SubjectSerializer</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectView</span><span class="params">(ModelViewSet)</span>:</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    serializer_class = SubjectSerializer</span><br></pre></td></tr></table></figure>
+<p>最后我们在urls中配置路径</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> poll.views <span class="keyword">import</span> SubjectView</span><br><span class="line"></span><br><span class="line">urlpatterns = [</span><br><span class="line">    path(<span class="string">'subjects/'</span>, SubjectView.as_view()),</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p>完成上述步骤之后我们就可以获得数据接口了。</p>
+<p>参考文献：<br>Python-100-Days:<a href="https://github.com/jackfrued/Python-100-Days/blob/master/Day41-55/48.%E5%89%8D%E5%90%8E%E7%AB%AF%E5%88%86%E7%A6%BB%E5%BC%80%E5%8F%91%E5%85%A5%E9%97%A8.md" target="_blank" rel="noopener">https://github.com/jackfrued/Python-100-Days/blob/master/Day41-55/48.%E5%89%8D%E5%90%8E%E7%AB%AF%E5%88%86%E7%A6%BB%E5%BC%80%E5%8F%91%E5%85%A5%E9%97%A8.md</a></p>
+]]></content>
+      <categories>
+        <category>django框架使用</category>
+      </categories>
+      <tags>
+        <tag>django</tag>
+        <tag>DRF</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Django基础与投票应用</title>
+    <url>/django-ji-chu/</url>
+    <content><![CDATA[<h3 id="Django简介"><a href="#Django简介" class="headerlink" title="Django简介"></a>Django简介</h3><p>Python下有许多款不同的 Web 框架。Django是重量级选手中最有代表性的一位。许多成功的网站和APP都基于Django。</p>
+<ul>
+<li><p>Django是一个开放源代码的Web应用框架，由Python写成。</p>
+</li>
+<li><p>Django遵守BSD版权，初次发布于2005年7月, 并于2008年9月发布了第一个正式版本1.0 。</p>
+</li>
+<li><p>Django采用了MVC的软件设计模式，即模型M，视图V和控制器C。</p>
+</li>
+</ul>
+<p>（转自菜鸟教程 <a href="https://www.runoob.com/django/django-tutorial.html" target="_blank" rel="noopener">https://www.runoob.com/django/django-tutorial.html</a> ）</p>
+<h3 id="创建并运行Django项目"><a href="#创建并运行Django项目" class="headerlink" title="创建并运行Django项目"></a>创建并运行Django项目</h3><p>创建django项目的方法很多，这里主要介绍三种方法：</p>
+<h4 id="方法一"><a href="#方法一" class="headerlink" title="方法一"></a>方法一</h4><ul>
+<li><p>首先保证已经拥有python开发环境，之后在终端中使用<code>pip install</code>的指令安装django依赖项</p>
+</li>
+<li><p>在安装完django依赖项之后，我们可以使用django admin的工具用来创建我们的django项目,使用指令<code>django-admin startproject 项目名</code>，这个时候在使用命令的目录下就会生成一个以<code>项目名</code>命名的项目文件夹，其中包含了项目的配置文件，url的映射文件，还有django的管理工具manage.py。</p>
+</li>
+<li><p>之后我们可以使用pycharm打开创建好的项目文件夹，然后开始配置项目的虚拟环境。</p>
+<ul>
+<li><p>配置虚拟环境有两种方法，一种是在pycharm中利用File —&gt; setting —&gt; Project —&gt; Project Interpreter —&gt; Add 的方法创建虚拟环境。</p>
+</li>
+<li><p>也可以利用pycharm中的终端功能，直接在终端里输入<code>python -m venv（模块名） venv(虚拟文件文件夹的名字)</code>    或者利用virtualenv这一个工具，在终端中输入<code>virtualenv --python==/usr/bin/python3（python的安装路径） venv（虚拟文件夹的名字）</code></p>
+</li>
+</ul>
+</li>
+<li><p>激活虚拟环境：苹果Linux系统下使用<code>source venv/bin/activate</code>Windows系统下使用<code>venv/Scripts/activate</code>的指令激活虚拟环境</p>
+</li>
+<li><p>在虚拟环境中安装django依赖项，在pycharm终端中输入<code>pip install django==2.1.15（可以自己指定想要安装的版本）</code></p>
+</li>
+<li><p>运行项目，这里依然有两种方法，第一种方法是直接在pycharm的终端中输入<code>python manage.py runserver</code>另一种方式就是创建一个快捷的启动按钮，Add Configuration —&gt; + —&gt; Python —&gt; Script Path(选中django项目文件中的manage.py) —&gt; Parameters(runserver)</p>
+</li>
+</ul>
+<h4 id="方法二"><a href="#方法二" class="headerlink" title="方法二"></a>方法二</h4><ul>
+<li>用pycharm创建一个普通的python项目</li>
+<li>安装djiango所需的依赖项，在pycharm终端中输入<code>pip install django==2.1.14</code></li>
+<li>把Python项目变成django项目<br><code>django-admin startproject 创建的Python项目名 .（注意这个.不要漏了，这个.表示在当前目录下创建django项目）</code></li>
+<li>运行项目的步骤同方法一</li>
+</ul>
+<h4 id="方法三"><a href="#方法三" class="headerlink" title="方法三"></a>方法三</h4><ul>
+<li><p>克隆项目到本地：使用pycharm的”get from version control” —&gt; 输入保存项目的路径和克隆的远程仓库地址eg:”<a href="mailto:git@gitee.com">git@gitee.com</a>:xxxx/djangoP.git”</p>
+</li>
+<li><p>克隆的项目通常不包含虚拟环境，因此需要激活虚拟环境：Linux/MacOS系统下使用<code>source venv/bin/activate</code>Windows系统下使用<code>venv/Scripts/activate</code>的指令激活虚拟环境</p>
+</li>
+<li><p>重建依赖项<code>pip install -r requirements.txt</code></p>
+</li>
+<li><p>运行项目:方法同上</p>
+</li>
+</ul>
+<p>当我们把django项目创建好并运行之后，通过访问<a href="https://127.0.0.1:8000/" target="_blank" rel="noopener">https://127.0.0.1:8000/</a> ，我们就能够看到django项目的默认欢迎页面啦</p>
+<p><img data-src="/images/pasted-13.png" alt="django默认欢迎页面"></p>
+<h3 id="django投票项目"><a href="#django投票项目" class="headerlink" title="django投票项目"></a>django投票项目</h3><h4 id="django项目创建"><a href="#django项目创建" class="headerlink" title="django项目创建"></a>django项目创建</h4><p>我们创建一个名为djangoP的项目（略）</p>
+<h4 id="设置配置文件"><a href="#设置配置文件" class="headerlink" title="设置配置文件"></a>设置配置文件</h4><h5 id="数据库设置"><a href="#数据库设置" class="headerlink" title="数据库设置"></a>数据库设置</h5><p>django项目的配置文件中，默认使用的是sqlite数据库，而开发过程中我们更常使用mySQL等关系型数据库，这里以mySQL数据库的配置为例来讲解该项目</p>
+<ul>
+<li><p>在服务器上启动mySQL:<code>systemctl start mysqld</code>,启动之后可以利用<code>netstat -ntlp</code>检查mySQL是否成功启动</p>
+</li>
+<li><p>使用mySQL客户端工具（或者可视化的程序，如navicat等）连接mySQL:<code>mysql -u root (-h ip地址) -p</code>（注意，连本机不需要-h，而连接非本机则需要输入服务器的ip地址），回车之后输入登录的口令密码即可成功连接。</p>
+</li>
+<li><p><code>show databases</code>查看当前服务器存在的数据库，mySQL中主要有三类的操作:</p>
+<ul>
+<li>DDL（Data Definition Languages）数据定义语句 —&gt; create/drop/alter ；</li>
+<li>DML（Data Manipulation Language）数据操纵语句，用于数据库记录的增删改查操作 —&gt; insert/delete/update/select(select有时也被单独成为DQL类操作)；</li>
+<li>DCL（Data Control Language）数据库控制语言，主要用于对数据库的操纵权限的分配操作 —&gt; grant/revoke</li>
+</ul>
+</li>
+<li><p>这里我们为本次的投票项目新建一个数据库<code>create database djangopolls default charset utf8;</code>（注意，为防止存入中文时出现编码错误，这里要指定编码方式），<code>use djangopolls</code>使用当前数据库，<code>show tables</code>查看当前数据库中的表</p>
+</li>
+<li><p>注意：在项目过程中，我们往往不会直接使用root超级管理员账号，而是新建一个用户并且授予其项目实施过程中所需要的权限，这样的做法更加科学和安全，因此，这里我们需要创建一个新的用户。<code>create user &#39;hanlin&#39;@&#39;%&#39; identified by &#39;123456（该用户的登录口令）;&#39;</code>“@”之后的字段表示只允许该用户从某一个特定的主机连接该服务器。“%”表示该用户可以从任意主机连接服务器。<code>grant all privileges on djangopolls.* to &#39;hanlin&#39;@&#39;%&#39;;</code>赋予“hanlin”这个用户在“djangopolls”这个数据库里对该数据库的所有权限。</p>
+</li>
+<li><p>当数据库和用户创建完毕之后，我们可以修改django项目配置文件中的“DATABASE”</p>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">DATABASES = &#123;</span><br><span class="line">    <span class="string">'default'</span>: &#123;</span><br><span class="line">        <span class="string">'ENGINE'</span>: <span class="string">'django.db.backends.sqlite3'</span>,</span><br><span class="line">        <span class="string">'NAME'</span>: os.path.join(BASE_DIR, <span class="string">'db.sqlite3'</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">DATABASES = &#123;</span><br><span class="line">    <span class="string">'default'</span>: &#123;</span><br><span class="line">        <span class="string">'ENGINE'</span>: <span class="string">'django.db.backends.mysql'</span>,</span><br><span class="line">        <span class="string">'NAME'</span>: <span class="string">'djangopolls'</span>,</span><br><span class="line">        <span class="string">'HOST'</span>: <span class="string">'47.96,21,76'</span>,</span><br><span class="line">        <span class="string">'PORT'</span>: <span class="number">3306</span>,</span><br><span class="line">        <span class="string">'USER'</span>: <span class="string">'hanlin'</span>,</span><br><span class="line">        <span class="string">'PASSWORD'</span>: <span class="string">'123456'</span>,</span><br><span class="line">        <span class="string">'CHARSET'</span>: <span class="string">'utf8'</span>,</span><br><span class="line">        <span class="string">'TIME_ZONE'</span>: <span class="string">'Asia/Chongqing'</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="创建应用"><a href="#创建应用" class="headerlink" title="创建应用"></a>创建应用</h5><ul>
+<li><p>数据库配置完成后，我们可以开始创建我们的投票应用了。在pycharm的终端中输入<code>python manage.py startapp polls</code>或者<code>django-admin startapp polls</code>，创建好之后我们会发现项目下多了一个“polls”的文件夹，其中有很多py文件。</p>
+<ul>
+<li><p>这里我们引入一些新的知识点，我们在开发项目中常常会使用一种开发模式，特别是功能比较复杂的项目，更需要对功能，对结构进行拆分，其中有一种“MVC架构模式”非常泛用。</p>
+<blockquote>
+<p>Model - View - Controller</p>
+</blockquote>
+<blockquote>
+<p>模型 - 视图 - 控制器</p>
+</blockquote>
+<blockquote>
+<p>数据 - 数据的显示 - 控制器（粘合数据和数据的显示）</p>
+</blockquote>
+<blockquote>
+<p>数据和数据的显示要分离（数据和显示的解耦合），我们写程序的时候一定要遵循“高内聚，低耦合”的原则。我们在写前端界面时也用到了数据和数据显示相分离的结构，比如我们在标签中写的是数据，而数据的显示则是写在样式表中</p>
+</blockquote>
+<blockquote>
+<p>在django中，依然遵循“MVC架构模式”，但是命名方式稍有区别</p>
+</blockquote>
+<blockquote>
+<p>Model - Template - View</p>
+</blockquote>
+<blockquote>
+<p>模型 - 模板 - 视图</p>
+</blockquote>
+<blockquote>
+<p>数据 - 数据的显示 - django中的视图扮演了控制器的角色</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li>我们现在再来看我们创建的应用“polls”，其中的“models”文件就是用来存放模型的，而“views”则是存放视图的文件，此时我们还需要创建一个“templates”的文件夹来存放模板。我们在项目“djangoP”目录下创建“templates”文件夹，创建好文件夹之后我们还需要去配置文件中配置模板的路径，在配置文件“setting.py”中找到“TEMPLATES”，其中的“DIRS”就是配置“templates”路径的地方。注意：此处的路径要写绝对路径，由于“setting.py中声明了BASE_DIR”即项目根路径，而“templates”文件夹就是根路径下，此处我们可以直接拼接:<code>os.path.join(BASE_DIR, &#39;templates&#39;)</code>到此位置模板也配置完成了，“MTV”架构全部完成！</li>
+</ul>
+</li>
+</ul>
+<p><img data-src="/images/pasted-14.png" alt="templates路径配置"></p>
+<h5 id="配置视图文件和urls统一资源定位符管理文件实现简单的访问"><a href="#配置视图文件和urls统一资源定位符管理文件实现简单的访问" class="headerlink" title="配置视图文件和urls统一资源定位符管理文件实现简单的访问"></a>配置视图文件和urls统一资源定位符管理文件实现简单的访问</h5><ul>
+<li><p>控制器的配置，前面我们说过“views.py”在django中扮演了控制器的角色，那么它主要承担了怎样的工作呢？</p>
+<ul>
+<li>接收用户的请求</li>
+<li>操作模型</li>
+<li>产生响应（渲染页面）</li>
+</ul>
+</li>
+<li><p>视图函数:</p>
+<ul>
+<li>在views.py中声明函数</li>
+<li>在urls.py中配置返回链接</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 当用户发起请求，系统给一个回应，这里要从django提供的库django.http中导入HttpResponse模块</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">(request:HttpRequest)</span>:</span></span><br><span class="line">	<span class="keyword">return</span> HttpResponse(<span class="string">'&lt;h1&gt;Hello, Django!&lt;/h1&gt;'</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">urlpatterns = [</span><br><span class="line">    path(<span class="string">'admin/'</span>, admin.site.urls),</span><br><span class="line">    path(<span class="string">''</span>, index), <span class="comment"># 当访问时不添加任何资源路径，返回index</span></span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<p>完成以上步骤之后，我们再次访问<a href="https://127.0.0.1:8000/" target="_blank" rel="noopener">https://127.0.0.1:8000/</a> 会发现，django默认界面不见了，取而代之的是我们写好的“Hello，Django！”</p>
+<h5 id="Django-ORM对象关系映射框架"><a href="#Django-ORM对象关系映射框架" class="headerlink" title="Django ORM对象关系映射框架"></a>Django ORM对象关系映射框架</h5><ul>
+<li>向数据库存数据的时候：对象变关系</li>
+<li>从数据库读数据的时候：关系变对象</li>
+</ul>
+<p>python中为我们提供了对象模型，而mySQL中采用的却是关系模型，这两种模型是不匹配的。</p>
+<p>比如说我们在python中创建了一个类Fruit，然后我们创建了一个Fruit的对象fruit；按照面向对象的思路。我们想删除这个对象时，我们可以使用类方法，比如说<code>fruit.delete()</code>就能删除这个对象，<code>fruit.save()</code>就能添加这个对象。</p>
+<p>而在数据库中，我们却不能采用这种方法，我们需要先创建一个游标对象cursor，然后用<code>cursor.execute(&#39;insert into tb_fruit values (%s, %s)&#39;)</code>来添加数据。</p>
+<p>如果没有ORM框架，我们需要在python中利用拼接字符串的方法来写sql的语句，这就非常麻烦了。</p>
+<p>而django中的ORM就能帮助我们解决这些矛盾，当我们从sql数据库中拿到数据的时候，ORM框架就能把自动帮我们把这些数据转换成python对象。这样虽然方便，但是会以牺牲性能为代价。</p>
+<h4 id="教师投票应用"><a href="#教师投票应用" class="headerlink" title="教师投票应用"></a>教师投票应用</h4><ul>
+<li>在models.py中建立模型</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Subject</span><span class="params">(models.Model)</span>:</span></span><br><span class="line">    <span class="string">"""学科模型类"""</span></span><br><span class="line">		</span><br><span class="line">    no = models.AutoField(primary_key=<span class="literal">True</span>, verbose_name=<span class="string">'编号'</span>)</span><br><span class="line">    name = models.CharField(max_length=<span class="number">20</span>, verbose_name=<span class="string">'名称'</span>)</span><br><span class="line">    intro = models.CharField(max_length=<span class="number">1000</span>, verbose_name=<span class="string">'介绍'</span>)</span><br><span class="line">    is_hot = models.BooleanField(default=<span class="literal">False</span>, verbose_name=<span class="string">'是否热门'</span>)</span><br><span class="line">    memo = models.CharField(max_length=<span class="number">256</span>, null=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">	<span class="string">"""这里我们需要在学科类中再声明一个Meta类来定义该学科类的一些属性"""</span></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">    	  <span class="comment"># 把该学科类绑定到sql数据库的一张表“tb_subject”上</span></span><br><span class="line">        db_table = <span class="string">'tb_subject'</span></span><br><span class="line">        verbose_name = <span class="string">'学科'</span></span><br><span class="line">        verbose_name_plural = <span class="string">'学科'</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在setting.py中的“INSTALLED_APPS”中添加我们的投票应用“polls”</li>
+</ul>
+<p><img data-src="/images/pasted-15.png" alt="setting.py中的“INSTALLED_APPS”"></p>
+<ul>
+<li><p>在pycharm的终端中执行牵引操作，把我们的模型变成表添加到sql数据库中。生成迁移<code>python manage.py makemigrations polls</code>执行该操作之后，会在polls目录下生成一个migration的迁移文件；执行迁移<code>python manage.py migrate</code>，把刚才生成的迁移直接变成数据库中的表</p>
+</li>
+<li><p>在执行完迁移之后我们访问我们的数据库，查看所有的表<code>show tables</code>，我们可以看见我们刚刚创建的那张表“tb_subject”,然后我们可以向这张表中添加一些字段</p>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">insert into tb_subject (name, intro) values </span><br><span class="line">('Python+人工智能', 'Python是一种跨平台的计算机程序设计语言。是一种面向对象的动态类型语言，最初被设计用于编写自动化脚本(shell)，随着版本的不断更新和语言新功能的添加，越来越多被用于独立的、大型项目的开发。'),</span><br><span class="line">('JavaEE+分布式', 'Java是一门面向对象编程语言，不仅吸收了C++语言的各种优点，还摒弃了C++里难以理解的多继承、指针等概念，因此Java语言具有功能强大和简单易用两个特征。Java语言作为静态面向对象编程语言的代表，极好地实现了面向对象理论，允许程序员以优雅的思维方式进行复杂的编程。'),</span><br><span class="line">('HTML5+跨平台', 'HTML5是构建Web内容的一种语言描述方式。HTML5是互联网的下一代标准，是构建以及呈现互联网内容的一种语言方式．被认为是互联网的核心技术之一。HTML产生于1990年，1997年HTML4成为互联网标准，并广泛应用于互联网应用的开发。');</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建一个首页去获取数据库中的数据并展示出来</li>
+</ul>
+<p>接下来我们回到views.py文件中，重写index视图函数</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">index</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""首页"""</span></span><br><span class="line">    <span class="string">"""注意这里要导入Subject"""</span></span><br><span class="line">    <span class="string">"""Subject继承了Model类，而Model类中给模型绑定了一个objects的属性，而这个objects就是模型的管理器对象，其中有一个all的方法，通过该方法可以拿到模型中的所有对象，并返回一个叫queryset的查询集对象"""</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    context = &#123;</span><br><span class="line">        <span class="string">'subjects'</span>: queryset</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> render(request, <span class="string">'index.html'</span>, context)</span><br></pre></td></tr></table></figure>
+<p>渲染页面：在templates目录下创建index.html</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>首页<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h2</span>&gt;</span>所有学科<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">hr</span>&gt;</span></span><br><span class="line">    &#123;% for subject in subjects %&#125;</span><br><span class="line">    <span class="comment">&lt;!--  Django模板页，可以使用Django模板语言模板指令来生成动态内容  --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"subject"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.intro &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    &#123;% endfor %&#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h5 id="django自带的管理员平台"><a href="#django自带的管理员平台" class="headerlink" title="django自带的管理员平台"></a>django自带的管理员平台</h5><p>访问<a href="https://127.0.0.1:8000/admin/" target="_blank" rel="noopener">https://127.0.0.1:8000/admin/</a> 我们会发现 django已经为我们内置了一个管理中心，通过该管理中心，我们能很方便地管理模型中的所有的对象，但是这个中心需要登录才能使用</p>
+<p><img data-src="/images/pasted-16.png" alt="django自带的管理员平台"></p>
+<ul>
+<li><p>打开我们的项目的pycharm终端，输入<code>python manage.py createsuperuser</code>回车之后会让你创建一组用户名和密码口令（如果不输入就默认是登录本机时使用的账号和密码口令）</p>
+</li>
+<li><p>注册自己的模型：在应用目录“polls”中，我们能找到一个叫“admin.py”的文件，在这个文件中我们可以注册我们的模型</p>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">admin.site.register(Subject)</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-17.png" alt="Subject模型"></p>
+<ul>
+<li>verbose_name/verbose_name_plural:可以在创建模型的时候传入参数指定字段的显示</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Subject</span><span class="params">(models.Model)</span>:</span></span><br><span class="line">    <span class="string">"""学科模型类"""</span></span><br><span class="line"></span><br><span class="line">    no = models.AutoField(primary_key=<span class="literal">True</span>, verbose_name=<span class="string">'编号'</span>)</span><br><span class="line">    name = models.CharField(max_length=<span class="number">20</span>, verbose_name=<span class="string">'名称'</span>)</span><br><span class="line">    intro = models.CharField(max_length=<span class="number">1000</span>, verbose_name=<span class="string">'介绍'</span>)</span><br><span class="line">    is_hot = models.BooleanField(default=<span class="literal">False</span>, verbose_name=<span class="string">'是否热门'</span>)</span><br><span class="line">    memo = models.CharField(max_length=<span class="number">256</span>, null=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__str__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.name</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        db_table = <span class="string">'tb_subject'</span></span><br><span class="line">        verbose_name = <span class="string">'学科'</span></span><br><span class="line">        <span class="comment"># 复数的显示</span></span><br><span class="line">        verbose_name_plural = <span class="string">'学科'</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>同时我们还可以在注册模型的时候定制模型的显示： 我们可以在“admin.py”中申明一个模型管理的类“SubjectAdmin”，在“admin”中的“ModelAdmin”这一个类中，提供了“list_display”的方法，可以定制模型的显示</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectAdmin</span><span class="params">(admin.ModelAdmin)</span>:</span></span><br><span class="line">	 <span class="comment"># 设定显示内容</span></span><br><span class="line">    list_display = (<span class="string">'no'</span>, <span class="string">'name'</span>, <span class="string">'intro'</span>)</span><br><span class="line">    <span class="comment"># 设定点击跳转的字段，不设定时默认为主键可点击跳转查看</span></span><br><span class="line">    list_display_links = (<span class="string">'name'</span>,)</span><br><span class="line">    <span class="comment"># 设定可用于搜索的字段</span></span><br><span class="line">    search_fields = (<span class="string">'name'</span>,)</span><br><span class="line">    设定排序规则</span><br><span class="line">    ordering = (<span class="string">'no'</span>,)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">admin.site.register(Subject, SubjectAdmin)</span><br></pre></td></tr></table></figure>
+
+<h5 id="静态资源路径的设置"><a href="#静态资源路径的设置" class="headerlink" title="静态资源路径的设置"></a>静态资源路径的设置</h5><p>为方便实验，我们直接在项目的根目录下，与模板（templates）平级，创建“static”文件夹，用于存放项目所需的静态资源。我们的静态资源一般分为三类：images（图片文件）、css（样式表）、js文件，我们可以直接在“static”文件目录下创建这三个文件夹。</p>
+<p><img data-src="/images/pasted-19.png" alt="创建静态资源路径"></p>
+<p>配置好静态资源目录之后，我们还需要在配置文件中对调用静态资源的路径进行配置，在“setting.py”中,我们需要进行如下设置</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 指定静态资源所在的文件的路径</span></span><br><span class="line">STATICFILES_DIRS = [os.path.join(BASE_DIR, <span class="string">'static'</span>), ]</span><br><span class="line"><span class="comment"># 指定静态资源在调用时路径名前缀（注意，这里的/static/和文件夹“static”无关，可以随便命名）</span></span><br><span class="line">STATIC_URL = <span class="string">'/static/'</span></span><br></pre></td></tr></table></figure>
+
+<p>这个时候我们就可以往我们的页面中插入图片了，这里我们给热门学科后面加上一把小火苗</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>首页<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h2</span>&gt;</span>所有学科<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">hr</span>&gt;</span></span><br><span class="line">    &#123;% for subject in subjects %&#125;</span><br><span class="line">    <span class="comment">&lt;!--  Django模板页，可以使用Django模板语言模板指令来生成动态内容  --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"subject"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;</span><br><span class="line">        &#123;% if subject.is_hot %&#125;</span><br><span class="line">       	 <span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">"/static/images/hotfire.png"</span>&gt;</span></span><br><span class="line">        &#123;% endif %&#125;</span><br><span class="line">        <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; subject.intro &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    &#123;% endfor %&#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-20.png" alt="给热门学科添加小火苗"></p>
+<h5 id="创建老师的模型"><a href="#创建老师的模型" class="headerlink" title="创建老师的模型"></a>创建老师的模型</h5><p>我们要做的是一个给老师投票的应用，现在我们的学科模型已经建立好了，接下来我们要建立老师的模型。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Teacher</span><span class="params">(models.Model)</span>:</span></span><br><span class="line">    <span class="string">"""老师（模型类）"""</span></span><br><span class="line">    no = models.AutoField(primary_key=<span class="literal">True</span>, verbose_name=<span class="string">'工号'</span>)</span><br><span class="line">    name = models.CharField(max_length=<span class="number">20</span>, verbose_name=<span class="string">'姓名'</span>)</span><br><span class="line">    gender = models.BooleanField(default=<span class="literal">True</span>, verbose_name=<span class="string">'性别'</span>)</span><br><span class="line">    birth = models.DateField(verbose_name=<span class="string">'出生日期'</span>)</span><br><span class="line">    photo = models.ImageField(upload_to=<span class="string">'images'</span>, default=<span class="string">''</span>, max_length=<span class="number">512</span>, verbose_name=<span class="string">'头像'</span>)</span><br><span class="line">    intro = models.CharField(default=<span class="string">''</span>, max_length=<span class="number">1000</span>, verbose_name=<span class="string">'介绍'</span>)</span><br><span class="line">    good_count = models.PositiveIntegerField(default=<span class="number">0</span>, verbose_name=<span class="string">'好评数'</span>)</span><br><span class="line">    bad_count = models.IntegerField(default=<span class="number">0</span>, verbose_name=<span class="string">'差评数'</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="string">"""老师和学科之间是多对一的关系，一个学科中可以有多个老师，而一个老师通常只属于一个学科，这个时候我们就需要用到外键约束了，外键约束一般添加到多的一方"""</span></span><br><span class="line">    subject = models.ForeignKey(to=Subject, on_delete=models.PROTECT, db_column=<span class="string">'sno'</span>, verbose_name=<span class="string">'所属学科'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        db_table = <span class="string">'tb_teacher'</span></span><br><span class="line">        verbose_name = <span class="string">'老师'</span></span><br><span class="line">        verbose_name_plural = <span class="string">'老师'</span></span><br></pre></td></tr></table></figure>
+<p>模型建立之后要再次进行模型的迁移：<code>python manage.py makemigrations polls</code>，<code>python manage.py migrate</code>，之后我们新建的模型就能生效啦。然后我们在“admin.py”中注册老师的模型</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TeacherAdmin</span><span class="params">(admin.ModelAdmin)</span>:</span></span><br><span class="line">    list_display = (<span class="string">'no'</span>, <span class="string">'name'</span>, <span class="string">'gender'</span>, <span class="string">'birth'</span>, <span class="string">'intro'</span>, <span class="string">'good_count'</span>, <span class="string">'bad_count'</span>,)</span><br><span class="line">    list_display_links = (<span class="string">'no'</span>, <span class="string">'name'</span>,)</span><br><span class="line">    search_fields = (<span class="string">'name'</span>, )</span><br><span class="line">    ordering = (<span class="string">'no'</span>, )</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">admin.site.register(Teacher, TeacherAdmin)</span><br></pre></td></tr></table></figure>
+
+<h5 id="对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面"><a href="#对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面" class="headerlink" title="对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面"></a>对主页的学科映射url使我们在点击学科的时候能跳转到老师的页面</h5><p>我们先回到主页的模板文件“index.html”中，把学科名的<code>&lt;p&gt;</code>标签换成超链接<code>&lt;a&gt;</code>标签，我们可以设计一个这样的标签</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"/teachers/?sno=&#123;&#123;subject.no&#125;&#125;"</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们要在url后面加参数需要用<code>?</code>来表示，如<code>&lt;a href=&quot;/teachers/?a=b&amp;c=d&lt;/a&gt;</code>，这表示我们要引入两组参数，a=b，c=d。这里因为我们点击该学科的名称后想要看到该学科对应的所有的老师的信息，而通过我们建立的老师和学科的模型我们可以知道老师和学科靠外键“学科编号”产生关联，因此这里我们最好引入学科编号作为参数。</p>
+<p>设置好之后，我们回到主页面，把我们的鼠标悬停在学科名上，然后查看浏览器窗口右下角我们会发现</p>
+<p><img data-src="/images/pasted-21.png" alt="悬停在学科名上"></p>
+<h5 id="设置显示老师的视图函数"><a href="#设置显示老师的视图函数" class="headerlink" title="设置显示老师的视图函数"></a>设置显示老师的视图函数</h5><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show_teachers</span><span class="params">(request)</span>:</span></span><br><span class="line">    <span class="string">"""显示指定学科的老师"""</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">    <span class="string">"""我们在点击学科的时候通过GET请求拿到“sno”这个参数"""</span></span><br><span class="line">        sno = request.GET[<span class="string">'sno'</span>]</span><br><span class="line">        <span class="string">"""拿到学科编号之后，我们就可以在学科模型中查询我们拿到的编号所对应的学科""</span></span><br><span class="line"><span class="string">        subject = Subject.objects.get(no=sno)</span></span><br><span class="line"><span class="string">        """</span>拿到学科编号之后，我们就可以在老师模型中查询我们拿到的编号所对应的老师，这里注意，老师模型中并没有学科编号，只有学科字段，学科编号是学科中的信息，因此我们通过subject__no的方式拿到学科编号<span class="string">"""</span></span><br><span class="line"><span class="string">        queryset = Teacher.objects.filter(subject__no=sno)</span></span><br><span class="line"><span class="string">        context = &#123;</span></span><br><span class="line"><span class="string">            'subject': subject,</span></span><br><span class="line"><span class="string">            'teachers': queryset</span></span><br><span class="line"><span class="string">        &#125;</span></span><br><span class="line"><span class="string">			"""</span>返回渲染一个teachers.html的页面<span class="string">"""</span></span><br><span class="line"><span class="string">        return render(request, 'teachers.html', context)</span></span><br><span class="line"><span class="string">    except (KeyError, ValueError, Subject.DoseNotExist):</span></span><br><span class="line"><span class="string">        return redirect('/')</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="创建老师信息的模板页"><a href="#创建老师信息的模板页" class="headerlink" title="创建老师信息的模板页"></a>创建老师信息的模板页</h5><p>由老师的视图函数可以知道，函数执行完最终会渲染一个teachers.html的页面，因此，我们需要创建这个页面，在“templates”文件夹下新建“teachers.html”</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">"en"</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">"UTF-8"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>首页<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="css">        <span class="selector-class">.photo</span>&#123;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">margin-top</span><span class="selector-pseudo">:30px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">width</span><span class="selector-pseudo">:140px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">height</span><span class="selector-pseudo">:140px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">float</span><span class="selector-pseudo">:left</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">border-radius</span><span class="selector-pseudo">:70px</span> 70<span class="selector-tag">px</span> 70<span class="selector-tag">px</span> 70<span class="selector-tag">px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">overflow</span><span class="selector-pseudo">:hidden</span></span></span><br><span class="line">        &#125;</span><br><span class="line"><span class="css">        <span class="selector-class">.content</span>&#123;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">margin</span><span class="selector-pseudo">:60px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">width</span><span class="selector-pseudo">:580px</span>;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">float</span><span class="selector-pseudo">:left</span>;</span></span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"><span class="css">        <span class="selector-class">.teacher</span>&#123;</span></span><br><span class="line"><span class="css">            <span class="selector-tag">clear</span><span class="selector-pseudo">:both</span>;</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">h2</span>&gt;</span>&#123;&#123; subject.name &#125;&#125;学科老师的信息<span class="tag">&lt;/<span class="name">h2</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">hr</span>&gt;</span></span><br><span class="line">    &#123;% for teacher in teachers %&#125;</span><br><span class="line">    <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"teacher"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"photo"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">"&#123;&#123; teacher.photo.url &#125;&#125;"</span> <span class="attr">width</span>=<span class="string">"140px"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!--  Django模板页，可以使用Django模板语言模板指令来生成动态内容  --&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"content"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">p</span>&gt;</span></span><br><span class="line">                &#123;&#123; teacher.name &#125;&#125;<span class="symbol">&amp;nbsp;</span><span class="symbol">&amp;nbsp;</span></span><br><span class="line">                &#123;&#123;teacher.gender | yesno:"男, 女"&#125;&#125;<span class="symbol">&amp;nbsp;</span><span class="symbol">&amp;nbsp;</span></span><br><span class="line">                &#123;&#123;teacher.birth&#125;&#125;</span><br><span class="line">            <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">p</span>&gt;</span>&#123;&#123; teacher.intro &#125;&#125;<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">p</span> <span class="attr">class</span>=<span class="string">"comment"</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"/good/?tno=&#123;&#123; teacher.no &#125;&#125;"</span>&gt;</span>好评<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">span</span>&gt;</span>&#123;&#123; teacher.good_count&#125;&#125;<span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br><span class="line"></span><br><span class="line">                <span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"/bad/?tno=&#123;&#123; teacher.no &#125;&#125;"</span>&gt;</span>差评<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">span</span>&gt;</span>&#123;&#123; teacher.bad_count&#125;&#125;<span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    &#123;% endfor %&#125;</span><br><span class="line">    </span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>最后我们还需要设置url路径，在“urls.py”文件中的“urlpatterns”中添加如下代码：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">path(<span class="string">'teachers/'</span>, show_teachers),</span><br></pre></td></tr></table></figure>
+<p>上述代码表示访问’teachers/‘时会调用“show_teachers”函数。之后我们访问我们的首页，点击学科之后就能看见老师的信息了。</p>
+<h5 id="投票的实现"><a href="#投票的实现" class="headerlink" title="投票的实现"></a>投票的实现</h5><p>在前面我们创建的老师的模板页中，我们为每个老师添加了好评和差评的<code>&lt;a&gt;</code>标签，以及可以显示票数的<code>&lt;span&gt;</code>标签，依照之前的步骤，我们需要创建好评与差评的视图函数，然后在“urls.py”文件中映射路径。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">praise_or_criticize</span><span class="params">(request)</span>:</span></span><br><span class="line"></span><br><span class="line">	tno = request.GET.get(<span class="string">'tno'</span>, <span class="string">'0'</span>)</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		teacher = Teacher.objects.get(no=tno)</span><br><span class="line">     <span class="string">"""request对象中包含有path属性，可以拿到请求的路径"""</span></span><br><span class="line">		<span class="keyword">if</span> request.path.startswith(<span class="string">'/good'</span>):</span><br><span class="line">			teacher.good_count += <span class="number">1</span></span><br><span class="line">		<span class="keyword">else</span>:</span><br><span class="line">			teacher.bad_count += <span class="number">1</span></span><br><span class="line">		teacher.save()</span><br><span class="line">	<span class="keyword">except</span> (ValueError, Teacher.DoesNotExist):</span><br><span class="line">		<span class="keyword">pass</span></span><br><span class="line">	<span class="keyword">return</span> redirect(<span class="string">f'/teachers/?sno=<span class="subst">&#123;sno&#125;</span>'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>写完了视图函数之后别忘了在“urls.py”文件中设置映射路径，在“urlpatterns”中添加</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">path(<span class="string">'good/'</span>, praise_or_criticize),</span><br><span class="line">path(<span class="string">'bad/'</span>, praise_or_criticize),</span><br></pre></td></tr></table></figure>
+
+<p>好了，现在我们看看，在首页点击学科进入老师界面之后是不是就可以对老师投票了呢？</p>
+<h4 id="功能的完善（提高）"><a href="#功能的完善（提高）" class="headerlink" title="功能的完善（提高）"></a>功能的完善（提高）</h4><h5 id="ajax异步请求实现界面的局部刷新"><a href="#ajax异步请求实现界面的局部刷新" class="headerlink" title="ajax异步请求实现界面的局部刷新"></a>ajax异步请求实现界面的局部刷新</h5><p>虽然我们已经简单的实现了给老师投票的功能，但是我们也发现了，当我们点击好评或差评的按钮时，不仅数字会发生变化，整个界面也会跟着刷新。这是完全没有必要的，因为页面中的其他数据并没有发生变化，不需要刷新，所以说这里我们可以通过引入ajax，实现页面的局部刷新，在进行投票的时候，只对票数进行刷新，页面的其他部分不发生变化。</p>
+<p>这里我们需要修改视图函数“praise_or_criticize”</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">praise_or_criticize</span><span class="params">(request)</span>:</span></span><br><span class="line"></span><br><span class="line">	tno = request.GET.get(<span class="string">'tno'</span>, <span class="string">'0'</span>)</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		teacher = Teacher.objects.get(no=tno)</span><br><span class="line">     <span class="string">"""request对象中包含有path属性，可以拿到请求的路径"""</span></span><br><span class="line">		<span class="keyword">if</span> request.path.startswith(<span class="string">'/good'</span>):</span><br><span class="line">			teacher.good_count += <span class="number">1</span></span><br><span class="line">		<span class="keyword">else</span>:</span><br><span class="line">			teacher.bad_count += <span class="number">1</span></span><br><span class="line">		teacher.save()</span><br><span class="line">     <span class="string">"""这里我们创建一个data字典用来保存函数执行的结果"""</span></span><br><span class="line">		data = &#123;<span class="string">'code'</span>: <span class="number">10000</span>, <span class="string">'message'</span>: <span class="string">'操作成功'</span>&#125;</span><br><span class="line">	<span class="keyword">except</span> (ValueError, Teacher.DoesNotExist):</span><br><span class="line">		data = &#123;<span class="string">'code'</span>: <span class="number">10001</span>, <span class="string">'message'</span>: <span class="string">'操作失败'</span>&#125;</span><br><span class="line">     <span class="string">"""把函数执行结果转化为json数据然后作为返回值，之前我们都是直接返回渲染界面，现在直接在模板中通过ajax来做异步请求"""</span></span><br><span class="line">	<span class="keyword">return</span> JsonResponse(data)</span><br></pre></td></tr></table></figure>
+<p>改完了视图函数之后我们在“teachers.html”模板中添加如下代码，这里需要用到Jquery</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">src</span>=<span class="string">"https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"</span>&gt;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="actionscript">   <span class="comment">// $()函数中的箭头函数是页面加载完成之后要执行的回调函数</span></span></span><br><span class="line"><span class="javascript">   $(() =&gt; &#123;</span></span><br><span class="line"><span class="javascript">       <span class="keyword">let</span> flag = <span class="literal">true</span></span></span><br><span class="line"><span class="actionscript">       <span class="comment">// 通过$(选择器)获取页面元素绑定点击事件</span></span></span><br><span class="line"><span class="actionscript">       <span class="comment">// on方法的第一个参数是事件名 第二个参数是事件回调函数</span></span></span><br><span class="line"><span class="actionscript">       <span class="comment">// 事件回调函数的参数evt是代表事件的对象</span></span></span><br><span class="line"><span class="javascript">       $(<span class="string">'.comment&gt;a'</span>).on(<span class="string">'click'</span>, (evt) =&gt; &#123;</span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 阻止事件默认行为（避免直接刷新页面）</span></span></span><br><span class="line">           evt.preventDefault()</span><br><span class="line"><span class="actionscript">           <span class="comment">// 通过事件对象获取事件源并由$函数转成jQuery对象</span></span></span><br><span class="line">           if(flag)&#123;</span><br><span class="line"><span class="actionscript">            <span class="comment">// 实现函数节流</span></span></span><br><span class="line"><span class="actionscript">           flag = <span class="literal">false</span></span></span><br><span class="line"><span class="javascript">           setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> &#123; flag = <span class="literal">true</span> &#125;, <span class="number">2000</span>)</span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 这里的evt.target就相当于this，即事件源，但是直接取evt.target拿到的是原生的js对象，这里我们需要把它放在$()中转化为一个jQuery对象      </span></span></span><br><span class="line"><span class="javascript">           <span class="keyword">let</span> anchor = $(evt.target)</span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 通过jQuery对象的getJSON方法发起Ajax请求</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// getJSON方法：发出get请求拿回json数据</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// attr()是jQuery中的一个对象方法，可以拿到对象的属性</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 第一个参数是请求事件源对应的URL</span></span></span><br><span class="line"><span class="actionscript">           <span class="comment">// 第二个参数是请求完成之后要执行的回调函数  </span></span></span><br><span class="line"><span class="javascript">           $.getJSON(anchor.attr(<span class="string">'href'</span>), (json) =&gt; &#123;</span></span><br><span class="line"><span class="actionscript">               <span class="keyword">if</span> (json.code == <span class="number">10000</span>) &#123; <span class="comment">// 投票成功</span></span></span><br><span class="line"><span class="actionscript">                   <span class="comment">// 获取与a标签相邻的span标签</span></span></span><br><span class="line"><span class="javascript">                   <span class="keyword">let</span> span = anchor.next()</span></span><br><span class="line"><span class="actionscript">                   <span class="comment">// 将span标签的值加1再写回span标签</span></span></span><br><span class="line"><span class="javascript">                   span.text(<span class="built_in">parseInt</span>(span.text()) + <span class="number">1</span>)</span></span><br><span class="line"></span><br><span class="line"><span class="actionscript">               &#125; <span class="keyword">else</span>&#123;</span></span><br><span class="line">                   alert(json.message)</span><br><span class="line">                   if (json.code == 10002)&#123;</span><br><span class="line"><span class="actionscript">                   location.href = <span class="string">'/login/?backurl='</span>+ btoa(<span class="string">'/teachers/?sno=&#123;&#123; subject.no &#125;&#125;'</span>)&#125;</span></span><br><span class="line">               &#125;</span><br><span class="line">           &#125;)</span><br><span class="line"><span class="actionscript">           &#125;<span class="keyword">else</span>&#123;</span></span><br><span class="line"><span class="actionscript">               alert(<span class="string">'操作太频繁'</span>)</span></span><br><span class="line">           &#125;</span><br><span class="line">       &#125;)</span><br><span class="line">   &#125;)</span><br><span class="line">   <span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：以上代码除了实现异步请求，还完成了数据节流的功能，让用户每隔两秒才能点击一次</p>
+<h5 id="登陆功能的实现"><a href="#登陆功能的实现" class="headerlink" title="登陆功能的实现"></a>登陆功能的实现</h5>]]></content>
+      <categories>
+        <category>django框架使用</category>
+      </categories>
+      <tags>
+        <tag>mySQL</tag>
+        <tag>django</tag>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis的核心数据类型</title>
+    <url>/redis-de-he-xin-shu-ju-lei-xing/</url>
+    <content><![CDATA[<h3 id="Redis简介"><a href="#Redis简介" class="headerlink" title="Redis简介"></a>Redis简介</h3><p>Redis 是完全开源免费的，遵守BSD协议，是一个高性能的key-value数据库。</p>
+<p>Redis 与其他 key - value 缓存产品有以下三个特点：</p>
+<ul>
+<li>Redis支持数据的持久化，可以将内存中的数据保存在磁盘中，重启的时候可以再次加载进行使用。</li>
+<li>Redis不仅仅支持简单的key-value类型的数据，同时还提供list，set，zset，hash等数据结构的存储。</li>
+<li>Redis支持数据的备份，即master-slave模式的数据备份。</li>
+</ul>
+<h3 id="Redis-优势"><a href="#Redis-优势" class="headerlink" title="Redis 优势"></a>Redis 优势</h3><ul>
+<li>性能极高 – Redis能读的速度是110000次/s,写的速度是81000次/s 。</li>
+<li>丰富的数据类型 – Redis支持二进制案例的 Strings, Lists, Hashes, Sets 及 Ordered Sets 数据类型操作。</li>
+<li>原子 – Redis的所有操作都是原子性的，意思就是要么成功执行要么失败完全不执行。单个操作是原子性的。多个操作也支持事务，即原子性，通过MULTI和EXEC指令包起来。</li>
+<li>丰富的特性 – Redis还支持 publish/subscribe, 通知, key 过期等等特性。</li>
+</ul>
+<h3 id="Redis与其他key-value存储有什么不同？"><a href="#Redis与其他key-value存储有什么不同？" class="headerlink" title="Redis与其他key-value存储有什么不同？"></a>Redis与其他key-value存储有什么不同？</h3><ul>
+<li><p>Redis有着更为复杂的数据结构并且提供对他们的原子性操作，这是一个不同于其他数据库的进化路径。Redis的数据类型都是基于基本数据结构的同时对程序员透明，无需进行额外的抽象。</p>
+</li>
+<li><p>Redis运行在内存中但是可以持久化到磁盘，所以在对不同数据集进行高速读写时需要权衡内存，因为数据量不能大于硬件内存。在内存数据库方面的另一个优点是，相比在磁盘上相同的复杂的数据结构，在内存中操作起来非常简单，这样Redis可以做很多内部复杂性很强的事情。同时，在磁盘格式方面他们是紧凑的以追加的方式产生的，因为他们并不需要进行随机访问。</p>
+</li>
+</ul>
+<p>（ 上述内容均转自菜鸟教程<a href="https://www.runoob.com/redis/redis-intro.html" target="_blank" rel="noopener">https://www.runoob.com/redis/redis-intro.html</a> ）</p>
+<h3 id="Linux环境下Redis的安装"><a href="#Linux环境下Redis的安装" class="headerlink" title="Linux环境下Redis的安装"></a>Linux环境下Redis的安装</h3><p>源代码构建的方式进行安装为例</p>
+<pre><code>~ wget https://download.redis.io/releases/redis-5.0.7.tar.gz
+~ gunzip redis-5.0.7.tar.gz
+~ tar -xvf redis-5.0.7.tar
+~ cd redis-5.0.7
+~ make &amp;&amp; make install</code></pre><p>（ 其他方式请自行参考<a href="https://www.runoob.com/redis/redis-install.html" target="_blank" rel="noopener">https://www.runoob.com/redis/redis-install.html</a> ）</p>
+<h3 id="连接Redis数据库并添加数据"><a href="#连接Redis数据库并添加数据" class="headerlink" title="连接Redis数据库并添加数据"></a>连接Redis数据库并添加数据</h3><h4 id="启动Redis服务器"><a href="#启动Redis服务器" class="headerlink" title="启动Redis服务器"></a>启动Redis服务器</h4><pre><code>~redis-server --requirepass password（设定连接密码） --port 1234设定端口（默认使用6379端口） &gt;&gt; redis.log（将执行过程中生成的数据重定向） &amp;（后台运行）</code></pre><p>（ Redis的更多配置方法参考<a href="https://www.runoob.com/redis/redis-conf.html" target="_blank" rel="noopener">https://www.runoob.com/redis/redis-conf.html</a> ）</p>
+<h4 id="连接Redis服务器"><a href="#连接Redis服务器" class="headerlink" title="连接Redis服务器"></a>连接Redis服务器</h4><p>连接本地服务器（localhost）<br>​<br>    ~redis-cli</p>
+<p>连接远程服务器<br>​<br>    ~redis-cli -p prot（输入端口号） -h host（输入ip地址） -a password（输入密码）</p>
+<h4 id="基础指令"><a href="#基础指令" class="headerlink" title="基础指令"></a>基础指令</h4><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>指令说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>auth password(连接密码)</td>
+<td>验证密码是否正确</td>
+</tr>
+<tr>
+<td>echo message</td>
+<td>打印message内容</td>
+</tr>
+<tr>
+<td>ping</td>
+<td>测试是否成功连接，成功的话会返回pong</td>
+</tr>
+<tr>
+<td>select 编号</td>
+<td>切换数据库，redis默认会为用户创建16个数据库</td>
+</tr>
+<tr>
+<td>quit</td>
+<td>断开与redis的连接</td>
+</tr>
+<tr>
+<td>set key value</td>
+<td>往数据库中添加键值对</td>
+</tr>
+<tr>
+<td>set key value ex time(秒数)</td>
+<td>向数据库中添加一对time后会失效的键值对</td>
+</tr>
+<tr>
+<td>get key</td>
+<td>获取键对应的值</td>
+</tr>
+<tr>
+<td>ttl key</td>
+<td>查看键对应的键值对的过期时间 -1代表永不过期</td>
+</tr>
+<tr>
+<td>expire key time</td>
+<td>给指定的键对应的键值对设置过期时间</td>
+</tr>
+<tr>
+<td>keys *</td>
+<td>查看数据库中的所有的键</td>
+</tr>
+<tr>
+<td>dbsize</td>
+<td>查看数据库中存在的键值对的数量</td>
+</tr>
+<tr>
+<td>save</td>
+<td>保存数据</td>
+</tr>
+<tr>
+<td>bgsave</td>
+<td>在后台保存数据</td>
+</tr>
+<tr>
+<td>flushdb</td>
+<td>清空当前数据库中的数据</td>
+</tr>
+<tr>
+<td>flushall</td>
+<td>清空所有数据库中的数据</td>
+</tr>
+<tr>
+<td>exists key</td>
+<td>判断指定的键是否存在</td>
+</tr>
+<tr>
+<td>type key</td>
+<td>查看指定的键对应的数据类型</td>
+</tr>
+</tbody></table>
+<h3 id="Redis的核心数据类型："><a href="#Redis的核心数据类型：" class="headerlink" title="Redis的核心数据类型："></a>Redis的核心数据类型：</h3><h4 id="字符串-String"><a href="#字符串-String" class="headerlink" title="字符串 - String"></a>字符串 - String</h4><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>指令说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>strlen key</td>
+<td>获取字符串长度</td>
+</tr>
+<tr>
+<td>append key value2</td>
+<td>给字符串追加内容</td>
+</tr>
+<tr>
+<td>mset key1 value1 key2 value2</td>
+<td>添加多组键值对</td>
+</tr>
+<tr>
+<td>mget key1 key2</td>
+<td>查看多个键对应的值</td>
+</tr>
+<tr>
+<td>incr key</td>
+<td>值加1</td>
+</tr>
+<tr>
+<td>incrby key value</td>
+<td>值加上value</td>
+</tr>
+<tr>
+<td>decr key</td>
+<td>值减1</td>
+</tr>
+<tr>
+<td>decrby key value</td>
+<td>值减去value</td>
+</tr>
+<tr>
+<td>getrange key start end</td>
+<td>获取字符串指定范围的子串</td>
+</tr>
+<tr>
+<td>setrange key offset value</td>
+<td>修改字符串指定位置的内容</td>
+</tr>
+</tbody></table>
+<h4 id="哈希（表）-hash"><a href="#哈希（表）-hash" class="headerlink" title="哈希（表） - hash"></a>哈希（表） - hash</h4><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>指令说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>hset key field value</td>
+<td>添加hash类型键值对</td>
+</tr>
+<tr>
+<td>hmset key field1 value1 field2 value2</td>
+<td>添加多组hash类型键值对</td>
+</tr>
+<tr>
+<td>hget key field</td>
+<td>获取hash类型字段对应的值</td>
+</tr>
+<tr>
+<td>hmget key field1 field2</td>
+<td>获取hash类型多个字段对应的值</td>
+</tr>
+<tr>
+<td>hgetall key</td>
+<td>获取hash类型所有的字段和对应的值</td>
+</tr>
+<tr>
+<td>hkeys key</td>
+<td>获取hash类型所有的字段</td>
+</tr>
+<tr>
+<td>hvals key</td>
+<td>获取hash类型所有字段的值</td>
+</tr>
+<tr>
+<td>hexists key field</td>
+<td>判断hash类型某个字段是否存在</td>
+</tr>
+</tbody></table>
+<h4 id="列表-list"><a href="#列表-list" class="headerlink" title="列表 - list"></a>列表 - list</h4><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>指令说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>lpush key value1 value2 value3</td>
+<td>在左边添加元素</td>
+</tr>
+<tr>
+<td>rpush key value1 value2 value3</td>
+<td>在右边添加元素</td>
+</tr>
+<tr>
+<td>lpop key</td>
+<td>从左边移除一个元素</td>
+</tr>
+<tr>
+<td>rpop key</td>
+<td>从右边移除一个元素</td>
+</tr>
+<tr>
+<td>lrange key start end</td>
+<td>查看列表指定范围的元素</td>
+</tr>
+<tr>
+<td>llen key</td>
+<td>查看列表元素个数</td>
+</tr>
+<tr>
+<td>lindex key index</td>
+<td>查看列表指定位置元素</td>
+</tr>
+<tr>
+<td>lrem key count value</td>
+<td>删除列表中指定元素</td>
+</tr>
+</tbody></table>
+<h4 id="集合-set"><a href="#集合-set" class="headerlink" title="集合 - set"></a>集合 - set</h4><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>指令说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>sadd key value1 value2 value3</td>
+<td>添加元素</td>
+</tr>
+<tr>
+<td>srem key value</td>
+<td>删除元素</td>
+</tr>
+<tr>
+<td>spop</td>
+<td>获取随机元素（取出后删除）</td>
+</tr>
+<tr>
+<td>scard key</td>
+<td>查看元素个数</td>
+</tr>
+<tr>
+<td>smembers key</td>
+<td>查看所有元素</td>
+</tr>
+<tr>
+<td>sismember key value</td>
+<td>查看集合中有没有指定元素</td>
+</tr>
+<tr>
+<td>sinter key1 key2</td>
+<td>交集</td>
+</tr>
+<tr>
+<td>sunion key1 key2</td>
+<td>并集</td>
+</tr>
+<tr>
+<td>sdiff key1 key2</td>
+<td>差集</td>
+</tr>
+</tbody></table>
+<h4 id="有序集合-zset"><a href="#有序集合-zset" class="headerlink" title="有序集合 - zset"></a>有序集合 - zset</h4><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>指令说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>zadd key score1 mem1 score2 mem2</td>
+<td>添加元素</td>
+</tr>
+<tr>
+<td>zrem key mem</td>
+<td>删除元素</td>
+</tr>
+<tr>
+<td>zrange key start end</td>
+<td>按score的升序查看元素</td>
+</tr>
+<tr>
+<td>zrevrange key start end</td>
+<td>按score的降序查看元素</td>
+</tr>
+<tr>
+<td>zscore key mem</td>
+<td>查看元素对应的score</td>
+</tr>
+<tr>
+<td>zincrby key value mem</td>
+<td>修改元素的score值</td>
+</tr>
+</tbody></table>
+<h3 id="LBS应用-Location-Based-Service-基于位置的服务"><a href="#LBS应用-Location-Based-Service-基于位置的服务" class="headerlink" title="LBS应用 - Location-Based Service - 基于位置的服务"></a>LBS应用 - Location-Based Service - 基于位置的服务</h3><p>LBS中的geo方法</p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>指令说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>geoadd key location1 经度 纬度 location2 经度 纬度…</td>
+<td>添加位置坐标</td>
+</tr>
+<tr>
+<td>geodist key location1 location2</td>
+<td>计算位置之间的距离</td>
+</tr>
+<tr>
+<td>georadius key 经度 纬度 距离 withcoord（显示坐标） withdist（显示距离）</td>
+<td>显示以某个位置为中心一定距离的半径范围内的位置坐标及距离</td>
+</tr>
+</tbody></table>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>Redis</tag>
+        <tag>数据类型</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Python中使用Redis做数据缓存</title>
+    <url>/python-zhong-shi-yong-redis-zuo-shu-ju-huan-cun/</url>
+    <content><![CDATA[<p>导入第三方库PyMySQL、Redis和pickle（把数据转化为二进制数据的第三方库）</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> redis</span><br><span class="line"><span class="keyword">import</span> pymysql</span><br><span class="line"><span class="keyword">import</span> pickle</span><br><span class="line"><span class="keyword">import</span> time</span><br></pre></td></tr></table></figure>
+
+<p>与MySQL数据库建立连接，并获取数据：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">load_test_from_db</span><span class="params">()</span>:</span></span><br><span class="line">	con = pymysql.connect(</span><br><span class="line">    	host=<span class="string">'localhost'</span>,</span><br><span class="line">      port=<span class="number">3306</span>,</span><br><span class="line">      user=<span class="string">'root'</span>,</span><br><span class="line">      password=<span class="string">'xxxx'</span></span><br><span class="line">      database=<span class="string">'s_test'</span>,</span><br><span class="line">      charset=<span class="string">'utf8'</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">with</span> con.cursor() <span class="keyword">as</span> cursor:</span><br><span class="line">       cursor.execute(<span class="string">'select name, age from tb_test'</span>)</span><br><span class="line">       test = cursor.fetchall()</span><br><span class="line">    con.close()</span><br><span class="line"><span class="keyword">return</span> test</span><br></pre></td></tr></table></figure>
+
+<p>建立Redis连接，并从Redis缓存中获取数据，当缓存中没有数据的时候从MySQL数据库中获取数据并把数据存到缓存中</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">	client = redis.Redis(</span><br><span class="line">    	host=<span class="string">'服务器公网ip'</span>,</span><br><span class="line">      port=<span class="number">6379</span>, <span class="comment"># redis端口，一般为6379端口</span></span><br><span class="line">      password=<span class="string">'服务器连接密码'</span></span><br><span class="line">    )</span><br><span class="line">   s_time = time.time</span><br><span class="line">   data = client.get(<span class="string">'test'</span>) <span class="comment"># 获取数据</span></span><br><span class="line">   <span class="keyword">if</span> data:</span><br><span class="line">   		test = pickle.loads(data)</span><br><span class="line">   <span class="keyword">else</span>:</span><br><span class="line">   		test = load_test_from_db()</span><br><span class="line">      client.set(<span class="string">'test'</span>,pickle.dumps(test))</span><br><span class="line">   e_time = time.time</span><br><span class="line">   print(test)</span><br><span class="line">   print(<span class="string">'执行耗时：'</span>,e_time - s_time)</span><br></pre></td></tr></table></figure>
+
+<p>执行代码</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">	main()</span><br></pre></td></tr></table></figure>
+
+<p>结论：从缓存中读取数据的速度远高于从内存中读取数据的速度，即利用Redis来做数据的储存能达到空间换取时间的目的。</p>
+]]></content>
+      <categories>
+        <category>数据库</category>
+      </categories>
+      <tags>
+        <tag>Python</tag>
+        <tag>Redis</tag>
+        <tag>MySQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>在Linux中安装软件</title>
+    <url>/zai-linux-zhong-an-zhuang-cheng-xu/</url>
+    <content><![CDATA[<h4 id="Linux中安装软件的方法"><a href="#Linux中安装软件的方法" class="headerlink" title="Linux中安装软件的方法"></a>Linux中安装软件的方法</h4><ul>
+<li>1.包管理工具</li>
+</ul>
+<blockquote>
+<p>-yum CentOS<br>    ~yum search nginx # 在库中查询是否有nginx的包<br>   ~yum install nginx # 安装nginx<br>   ~yum erase nginx/yum remove nginx # 卸载nginx<br>   ~yum info nginx # 查看安装的nginx的信息<br>   ~yum list installed|grep nginx 查看已经安装的和nginx相关的软件</p>
+</blockquote>
+<blockquote>
+<p>-rpm Redhat<br>    ~rpm -ivh 下载的rpm包文件名 # 安装软件并监察安装进度<br>   ~rpm -e rpm包名 # 卸载安装的rpm包<br>   ~rpm -qa # 列出所有的被安装的rpm包</p>
+</blockquote>
+<blockquote>
+<p>-apt Ubantu</p>
+</blockquote>
+<ul>
+<li>2.源代码构建安装</li>
+</ul>
+<p>eg:安装Redis官方最新版为例</p>
+<blockquote>
+<p>~wget <a href="https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.24.1.tar.xz" target="_blank" rel="noopener">https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.24.1.tar.xz</a> # 下载Redis包，以压缩方式xz的包为例<br>  ~xz -d git-2.24.1.tar.xz # 解压缩<br>  ~tar -xf git-2.24.1.tar # 解归档<br>  ~cd git-2.24.1 # 进入解归档后的安装文件目录<br>  ~yum install -y curl libcurl-devel # 执行安装命令<br>  ~./configure –prefix=/usr/local # 指定安装路径<br>  ~make &amp;&amp; make install # 安装</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Linux</category>
+      </categories>
+      <tags>
+        <tag>Linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>pymysql</title>
+    <url>/pymysql/</url>
+    <content><![CDATA[<p>pymysql在Python中的使用</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> pymysql</span><br></pre></td></tr></table></figure>
+<h3 id="1-和mysql建立连接"><a href="#1-和mysql建立连接" class="headerlink" title="1.和mysql建立连接"></a>1.和mysql建立连接</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="string">连接对象 = pymysql.connect(host,port,user,password)  - 和指定mysql建立连接并且返回一个连接对象</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">说明:</span></span><br><span class="line"><span class="string">    host - mysql主机地址（localhost表示当前设备上的mysql, 服务器公网ip）</span></span><br><span class="line"><span class="string">    port - mysql服务端口， 3306</span></span><br><span class="line"><span class="string">    user - mysql用户</span></span><br><span class="line"><span class="string">    password  - 用户对应的密码(如果创建用户的时候没有设置密码，这个参数可以不用赋值)</span></span><br><span class="line"><span class="string">    database - 建立连接后默认操作的数据库</span></span><br><span class="line"><span class="string">    charset - 设置连接的数据库文件的编码方式</span></span><br><span class="line"><span class="string">    autocommit - 是否自动提交</span></span><br><span class="line"><span class="string">"""</span></span><br><span class="line">con = pymysql.connect(</span><br><span class="line">        host=<span class="string">'localhost'</span>,</span><br><span class="line">        port=<span class="number">3306</span>,</span><br><span class="line">        user=<span class="string">'root'</span>,</span><br><span class="line">        password=<span class="string">'yuting123456'</span>,</span><br><span class="line">        database=<span class="string">'school'</span>,</span><br><span class="line">        charset=<span class="string">'utf8'</span>,</span><br><span class="line">        autocommit=<span class="literal">True</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<h3 id="2-通过连接获取游标对象"><a href="#2-通过连接获取游标对象" class="headerlink" title="2.通过连接获取游标对象"></a>2.通过连接获取游标对象</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="string">with 连接对象.cursor(查询返回值类型=None) as 游标对象:</span></span><br><span class="line"><span class="string">    数据库操作上下文</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">说明:</span></span><br><span class="line"><span class="string">    查询返回值类型  - None: 查询结果以元组的形式返回; </span></span><br><span class="line"><span class="string">                    pymysql.cursors.DictCursor: 查询结果以字典的形式返回</span></span><br><span class="line"><span class="string">    数据库操作上下文 - 游标对象(数据库操作)只有在数据库操作上下文才有效</span></span><br><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="keyword">with</span> con.cursor() <span class="keyword">as</span> cursor:</span><br><span class="line">    <span class="comment"># 数据库操作上下文</span></span><br><span class="line">    <span class="comment"># 3.执行sql语句: 游标对象.execute(sql语句)</span></span><br><span class="line">    cursor.execute(<span class="string">'create database if not exists pyschool;'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#  关闭连接</span></span><br><span class="line">con.close()</span><br></pre></td></tr></table></figure>
+<h3 id="3-在Python中对表的操作"><a href="#3-在Python中对表的操作" class="headerlink" title="3.在Python中对表的操作"></a>3.在Python中对表的操作</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">query_table</span><span class="params">(connect)</span>:</span></span><br><span class="line">    <span class="comment"># 注意: 执行查询的sql语句,查询结果保存在游标对象中的</span></span><br><span class="line">    <span class="comment"># 游标对象.fetchall()</span></span><br><span class="line">    sql_str = <span class="string">'select * from tb_student;'</span></span><br><span class="line">    <span class="keyword">with</span> connect.cursor(pymysql.cursors.DictCursor) <span class="keyword">as</span> cursor:</span><br><span class="line">        result = cursor.execute(sql_str)</span><br><span class="line">        print(result, cursor)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 注意: cursor中的查询结果，取一个就少一个</span></span><br><span class="line">        <span class="comment"># 1. 游标对象.fetchall() - 获取当前查询的所有的结果</span></span><br><span class="line">        <span class="comment"># all_result = cursor.fetchall()</span></span><br><span class="line">        <span class="comment"># print('查询结果的个数:', len(all_result))</span></span><br><span class="line">        <span class="comment"># for dic in all_result:</span></span><br><span class="line">        <span class="comment">#     print(dic['stuname'])</span></span><br><span class="line">        <span class="comment">#</span></span><br><span class="line">        <span class="comment"># all_result2 = cursor.fetchall()</span></span><br><span class="line">        <span class="comment"># print(all_result2)</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 2. 游标对象.fetchone()  - 获取当前查询中一条数据</span></span><br><span class="line">        print(cursor.fetchone())</span><br><span class="line">        print(cursor.fetchone())</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 3. 游标对象.fetchmany(size)   -- 获取当前查询中指定条数的数据</span></span><br><span class="line">        print(cursor.fetchmany(<span class="number">2</span>))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">operate_table</span><span class="params">(connect)</span>:</span></span><br><span class="line">    <span class="string">"""增删改"""</span></span><br><span class="line">    <span class="comment"># 1.增</span></span><br><span class="line">    <span class="comment"># sql_str = '''</span></span><br><span class="line">    <span class="comment">#     insert into tb_student</span></span><br><span class="line">    <span class="comment">#     (stuname, stusex, stuage, setutel)</span></span><br><span class="line">    <span class="comment">#     values</span></span><br><span class="line">    <span class="comment">#     ('张三', 1, 30, '17823736452'),</span></span><br><span class="line">    <span class="comment">#     ('stu1', 0, 28, '16728729739');</span></span><br><span class="line">    <span class="comment"># '''</span></span><br><span class="line">    print(<span class="string">'=========插入学生=========='</span>)</span><br><span class="line">    sql_str = <span class="string">'insert into tb_student (stuname, stusex, stuage, setutel) values %s;'</span></span><br><span class="line">    str2 = <span class="string">''</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        name = input(<span class="string">'请输入名字:'</span>)</span><br><span class="line">        sex = int(input(<span class="string">'请输入性别(0/1):'</span>))</span><br><span class="line">        age = int(input(<span class="string">'请输入年龄:'</span>))</span><br><span class="line">        tel = input(<span class="string">'请输入电话号码:'</span>)</span><br><span class="line">        value = input(<span class="string">'是否继续添加(y/n):'</span>)</span><br><span class="line">        str2 += <span class="string">"('%s', %d, %d, '%s'),"</span> % (name, sex, age, tel)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> value == <span class="string">'n'</span>:</span><br><span class="line">            print(str2[:<span class="number">-1</span>])</span><br><span class="line">            sql_str = sql_str % str2[:<span class="number">-1</span>]</span><br><span class="line">            print(sql_str)</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> connect.cursor() <span class="keyword">as</span> cursor:</span><br><span class="line">        cursor.execute(sql_str)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_table</span><span class="params">(connect)</span>:</span></span><br><span class="line">    <span class="string">"""创建表"""</span></span><br><span class="line">    <span class="keyword">with</span> connect.cursor() <span class="keyword">as</span> cursor:</span><br><span class="line">        <span class="comment"># 1.=========创建学生表=========</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            sql_str = <span class="string">'''</span></span><br><span class="line"><span class="string">            create table tb_student</span></span><br><span class="line"><span class="string">            (</span></span><br><span class="line"><span class="string">                stuid int auto_increment,</span></span><br><span class="line"><span class="string">                stuname varchar(10) not null,</span></span><br><span class="line"><span class="string">                stuage int,</span></span><br><span class="line"><span class="string">                stusex bit default 1,</span></span><br><span class="line"><span class="string">                setutel varchar(11),</span></span><br><span class="line"><span class="string">                primary key (stuid)</span></span><br><span class="line"><span class="string">            );</span></span><br><span class="line"><span class="string">            '''</span></span><br><span class="line">            cursor.execute(sql_str)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># 自定制表</span></span><br><span class="line">        <span class="comment"># table_name = input('表名:')</span></span><br><span class="line">        <span class="comment"># pre = table_name[:3]</span></span><br><span class="line">        <span class="comment"># cnames = []</span></span><br><span class="line">        <span class="comment"># while True:</span></span><br><span class="line">        <span class="comment">#     cname = input('请输入字段名(q-退出):')</span></span><br><span class="line">        <span class="comment">#     if cname == 'q':</span></span><br><span class="line">        <span class="comment">#         break</span></span><br><span class="line">        <span class="comment">#     cnames.append(pre+cname+' text,')</span></span><br><span class="line">        <span class="comment">#</span></span><br><span class="line">        <span class="comment"># str1 = '''</span></span><br><span class="line">        <span class="comment">#     create table if not exists tb_%s</span></span><br><span class="line">        <span class="comment">#     (</span></span><br><span class="line">        <span class="comment">#         %sid int auto_increment,</span></span><br><span class="line">        <span class="comment">#         %s</span></span><br><span class="line">        <span class="comment">#         primary key (%sid)</span></span><br><span class="line">        <span class="comment">#     );</span></span><br><span class="line">        <span class="comment"># '''</span></span><br><span class="line">        <span class="comment">#</span></span><br><span class="line">        <span class="comment"># sql_str = str1 % (</span></span><br><span class="line">        <span class="comment">#     table_name,</span></span><br><span class="line">        <span class="comment">#     table_name[:3],</span></span><br><span class="line">        <span class="comment">#     ' '.join(cnames),</span></span><br><span class="line">        <span class="comment">#     table_name[: 3]</span></span><br><span class="line">        <span class="comment"># )</span></span><br><span class="line">        <span class="comment"># print(sql_str)</span></span><br><span class="line">        <span class="comment"># cursor.execute(sql_str)</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="comment"># 1.建立连接</span></span><br><span class="line">    con = pymysql.connect(</span><br><span class="line">            host=<span class="string">'localhost'</span>,</span><br><span class="line">            user=<span class="string">'root'</span>,</span><br><span class="line">            password=<span class="string">'yuting123456'</span>,</span><br><span class="line">            port=<span class="number">3306</span>,</span><br><span class="line">            charset=<span class="string">'utf8'</span>,</span><br><span class="line">            autocommit=<span class="literal">True</span></span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 2.切换数据库</span></span><br><span class="line">    <span class="keyword">with</span> con.cursor() <span class="keyword">as</span> cursor:</span><br><span class="line">        cursor.execute(<span class="string">'use pyschool;'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 3.创建表</span></span><br><span class="line">    create_table(con)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 4.操作表</span></span><br><span class="line">    operate_table(con)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 5.查询数据</span></span><br><span class="line">    query_table(con)</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>数据库</category>
+      </categories>
+      <tags>
+        <tag>mySQL</tag>
+        <tag>SQL</tag>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>03.授权、事务、视图和索引</title>
+    <url>/03-shou-quan-shi-wu-shi-tu-he-suo-yin/</url>
+    <content><![CDATA[<h3 id="DCL（数据控制语言）"><a href="#DCL（数据控制语言）" class="headerlink" title="DCL（数据控制语言）"></a>DCL（数据控制语言）</h3><p>DCL主要提供授权和召回授权以及事务等相关功能</p>
+<h4 id="1-用户管理（root账号才有的权限）"><a href="#1-用户管理（root账号才有的权限）" class="headerlink" title="1.用户管理（root账号才有的权限）"></a>1.用户管理（root账号才有的权限）</h4><h5 id="1）创建用户"><a href="#1）创建用户" class="headerlink" title="1）创建用户"></a>1）创建用户</h5><p><code>create user &#39;用户名&#39;@&#39;登录地址&#39;；</code>    -    创建数据库用户，该用户登录不需要密码</p>
+<p><code>create user &#39;用户名&#39;@&#39;登录地址&#39; identified by &#39;密码&#39;；</code></p>
+<p>说明：</p>
+<p>用户名    -    随便命名</p>
+<p>登录地址    -    ip地址/localhost（本机）/%（任意位置）</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">USER</span> <span class="string">'user1'</span>@<span class="string">'localhost'</span>;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">user</span> <span class="string">'user2'</span>@<span class="string">'%'</span> <span class="keyword">IDENTIFIED</span> <span class="keyword">by</span> <span class="string">'123456'</span>;</span><br></pre></td></tr></table></figure>
+
+<h5 id="2）删除用户"><a href="#2）删除用户" class="headerlink" title="2）删除用户"></a>2）删除用户</h5><p><code>drop user &#39;用户名&#39;；</code></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">drop</span> <span class="keyword">user</span> <span class="string">'user2'</span>;</span><br><span class="line"><span class="keyword">drop</span> <span class="keyword">user</span> <span class="string">'user1'</span>@<span class="string">'localhost'</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-授权管理"><a href="#2-授权管理" class="headerlink" title="2.授权管理"></a>2.授权管理</h4><h5 id="1）授权"><a href="#1）授权" class="headerlink" title="1）授权"></a>1）授权</h5><p><code>grant 权限类型 on 数据库.表 to 用户名；</code></p>
+<p>说明：</p>
+<p>权限类型    -    <code>insert</code>，<code>delete</code>，<code>update</code>，<code>select</code>，<code>create</code>，<code>drop</code>，<code>all privileges</code></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">grant</span> <span class="keyword">select</span> <span class="keyword">on</span> school.tb_student <span class="keyword">to</span> <span class="string">'user1'</span>@<span class="string">'localhost'</span>;</span><br><span class="line"><span class="keyword">grant</span> <span class="keyword">update</span>,<span class="keyword">delete</span> <span class="keyword">on</span> school.tb_student <span class="keyword">to</span> <span class="string">'user1'</span>@<span class="string">'localhost'</span>;</span><br><span class="line"><span class="keyword">grant</span> <span class="keyword">select</span> <span class="keyword">on</span> hrs.* <span class="keyword">to</span> <span class="string">'user1'</span>@<span class="string">'localhost'</span>;</span><br></pre></td></tr></table></figure>
+
+<h5 id="2）召回授权"><a href="#2）召回授权" class="headerlink" title="2）召回授权"></a>2）召回授权</h5><p><code>revoke 权限类型 on 数据库.表 from 用户；</code></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">revoke</span> <span class="keyword">update</span> <span class="keyword">on</span> school.tb_student <span class="keyword">from</span> <span class="string">'user1'</span>@<span class="string">'localhost'</span>;</span><br></pre></td></tr></table></figure>
+<h4 id="3-事务"><a href="#3-事务" class="headerlink" title="3.事务"></a>3.事务</h4><p>如果完成一个任务需要多个操作，但是要求多个操作中，只要有一个失败，整个任务就会取消，同时让数据库回到任务开始前的状态，只有所有的操作都成功的情况下，数据库才会更新。这个时候我们就需要用到事务。</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- 开启事务环境</span></span><br><span class="line"><span class="keyword">begin</span>;</span><br><span class="line"><span class="comment">-- 提交事务</span></span><br><span class="line"><span class="keyword">commit</span>;</span><br><span class="line"><span class="comment">-- 事务回滚</span></span><br><span class="line"><span class="keyword">rollback</span>;</span><br></pre></td></tr></table></figure>
+<h3 id="视图"><a href="#视图" class="headerlink" title="视图"></a>视图</h3><p>视图是用来存储一个sql查询语句的结果的。就相当于给查询语句的结果创建了一张临时表，但是该临时表不占物理内存</p>
+<h4 id="1-创建视图"><a href="#1-创建视图" class="headerlink" title="1.创建视图"></a>1.创建视图</h4><p><code>create view 视图名 as sql查询语句；</code>    -    给sql查询语句的结果创建一张临时表</p>
+<p>eg:获取学生学科的成绩</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> stuid,stuname,couid,couname,score <span class="keyword">from</span> tb_student,tb_record,tb_course <span class="keyword">where</span> tb_student.stuid=tb_record.sid <span class="keyword">and</span> tb_record.cid=tb_course.couid;</span><br><span class="line"></span><br><span class="line"><span class="comment">--对以上查询创建视图</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">create</span> <span class="keyword">view</span> vw_stu_info <span class="keyword">as</span> (<span class="keyword">select</span> stuid,stuname,couid,couname,score <span class="keyword">from</span> tb_student,tb_record,tb_course <span class="keyword">where</span> tb_student.stuid=tb_record.sid <span class="keyword">and</span> tb_record.cid=tb_course.couid);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 当视图被创建之后，可以直接对该视图进行查询操作</span></span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-7.png" alt="创建视图"></p>
+<h4 id="2-使用视图"><a href="#2-使用视图" class="headerlink" title="2.使用视图"></a>2.使用视图</h4><p>视图在使用的时候和表的使用方法一样（注意：视图一般只用于查询操作，而不进行增删改的操作）</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- 查询视图和查询表一样</span></span><br><span class="line"><span class="keyword">select</span> stuname,<span class="keyword">avg</span>(score)<span class="keyword">from</span> vw_stu_info <span class="keyword">group</span> <span class="keyword">by</span> stuid;</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-6.png" alt="直接对视图进行查询操作"></p>
+<p>注：当对用户进行授权的时候，可以只针对视图进行授权操作。</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">view</span> vw_emp_info <span class="keyword">as</span> <span class="keyword">select</span> eno,ename,job,mgr,dno <span class="keyword">from</span> tb_emp;</span><br><span class="line"></span><br><span class="line"><span class="keyword">grant</span> <span class="keyword">select</span> <span class="keyword">on</span> hrs.vw_emp_info <span class="keyword">to</span> <span class="string">'user1'</span>@<span class="string">'localhost'</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="索引"><a href="#索引" class="headerlink" title="索引"></a>索引</h3><p>索引就像书的目录，记录了数据的位置，可以提高查询的速度（用空间换时间），一般需要给使用频率较高的字段添加索引；（主键自带索引    -    唯一索引）</p>
+<h4 id="1-添加索引"><a href="#1-添加索引" class="headerlink" title="1.添加索引"></a>1.添加索引</h4><p><code>create index 索引名 on 表名 （字段）；</code>    -    给指定的字段添加普通的索引</p>
+<p><code>create unique index 索引名 on 表名 （字段）；</code>    -    给指定字段添加唯一索引（字段是唯一的时候才能添加唯一索引）</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> tb_student <span class="keyword">where</span> stuname=<span class="string">'项少龙'</span>;</span><br><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> tb_student <span class="keyword">WHERE</span> stuid =<span class="number">3755</span>;</span><br><span class="line"><span class="comment">-- explain 获取sql语句的执行计划，是用来查看执行性能的方法</span></span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-8.png" alt="无索引查询"></p>
+<p><img data-src="/images/pasted-9.png" alt="唯一索引查询"></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">index</span> idx_stuname <span class="keyword">on</span> tb_student(stuname);</span><br><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">SELECT</span> * <span class="keyword">FROM</span> tb_student <span class="keyword">where</span> stuname=<span class="string">'项少龙'</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-10.png" alt="普通索引查询"></p>
+<p>注意：模糊查询的时候以<code>%</code>，<code>_</code>开头时，相较于无索引查询，效率几乎不会提高</p>
+<h4 id="2-删除索引"><a href="#2-删除索引" class="headerlink" title="2.删除索引"></a>2.删除索引</h4><p><code>alter table 表名 drop index 索引名；</code></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> tb_student <span class="keyword">drop</span> <span class="keyword">index</span> idx_stuname;</span><br></pre></td></tr></table></figure>
+<p>注意：</p>
+<p>索引不能滥用</p>
+<ul>
+<li>索引会占用额外的空间</li>
+<li>索引会让增删改的操作变得更慢</li>
+</ul>
+<p>如果哪个列经常被用于查询操作，就给那个列添加索引。</p>
+]]></content>
+      <categories>
+        <category>数据库</category>
+      </categories>
+      <tags>
+        <tag>数据库</tag>
+        <tag>mySQL</tag>
+        <tag>SQL</tag>
+        <tag>数据库控制语言</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>02.外键约束和高级查询</title>
+    <url>/02.wai-jian-yue-shu-he-gao-ji-cha-xun/</url>
+    <content><![CDATA[<h3 id="1-E-R实体关系图"><a href="#1-E-R实体关系图" class="headerlink" title="1.E.R实体关系图"></a>1.E.R实体关系图</h3><p>E.R实体关系图是通过图标的形式来表示数据库中表和字段以及表和表之间的关系。</p>
+<p>表和表之间的关系主要有四种：一对一，一对多，多对一，多对多</p>
+<p><img data-src="/images/pasted-2.png" alt="E.R实体关系图示例"></p>
+<h3 id="2-外键约束"><a href="#2-外键约束" class="headerlink" title="2.外键约束"></a>2.外键约束</h3><h4 id="什么是外键约束"><a href="#什么是外键约束" class="headerlink" title="什么是外键约束"></a>什么是外键约束</h4><p>外键约束就是：让字段的值的取值范围在另外一张表的主键中</p>
+<h4 id="怎么添加外键约束"><a href="#怎么添加外键约束" class="headerlink" title="怎么添加外键约束"></a>怎么添加外键约束</h4><h5 id="1）保证当前表中有一个字段能够保存另外一张表的主键"><a href="#1）保证当前表中有一个字段能够保存另外一张表的主键" class="headerlink" title="1）保证当前表中有一个字段能够保存另外一张表的主键"></a>1）保证当前表中有一个字段能够保存另外一张表的主键</h5><h5 id="2）添加外键约束"><a href="#2）添加外键约束" class="headerlink" title="2）添加外键约束"></a>2）添加外键约束</h5><p>不同的对应关系，外键的添加的要求（方式）不同：</p>
+<ul>
+<li>一对一：可以添加到任意一张表中</li>
+<li>一对多和多对一：添加到多对应的那张表中，比如学生和学院的对应关系中（一个学生对应一个学院，而一个学院可以对应多个学生），外键应当添加到学生表中</li>
+<li>多对多：两张表之间不能直接建立多对多的对应关系，需要使用一张额外的表</li>
+</ul>
+<h3 id="3-怎么添加约束"><a href="#3-怎么添加约束" class="headerlink" title="3.怎么添加约束"></a>3.怎么添加约束</h3><h4 id="3-1-创建表或者添加字段的时候直接在字段后面添加约束"><a href="#3-1-创建表或者添加字段的时候直接在字段后面添加约束" class="headerlink" title="3.1 创建表或者添加字段的时候直接在字段后面添加约束"></a>3.1 创建表或者添加字段的时候直接在字段后面添加约束</h4><h4 id="3-2-通过修改表的表示添加和删除约束"><a href="#3-2-通过修改表的表示添加和删除约束" class="headerlink" title="3.2 通过修改表的表示添加和删除约束"></a>3.2 通过修改表的表示添加和删除约束</h4><ul>
+<li><p>添加普通约束：alter table 表名 add constraint 约束索引名 约束名（字段）;    –     给指定字段添加指定约束（只能添加唯一约束和主键约束）</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> tb_student <span class="keyword">add</span> <span class="keyword">constraint</span> unique_collid <span class="keyword">unique</span>(collid);</span><br></pre></td></tr></table></figure></li>
+<li><p>删除普通约束：alter table 表名 drop index 约束索引名;    –    删除指定约束</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> tb_student <span class="keyword">drop</span> <span class="keyword">index</span> unique_collid;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>添加外键约束：alter table 表1 add constraint 约束索引名 foreign key（字段1） references 表2（字段2）;    –    给表1中的字段1添加外键约束，并且字段1的值依赖表2中的字段2，字段1和字段2不能同名</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> tb_student <span class="keyword">add</span> <span class="keyword">constraint</span> fk_collid_coll <span class="keyword">foreign</span> <span class="keyword">key</span>(collid) <span class="keyword">references</span> tb_college(collid);</span><br></pre></td></tr></table></figure></li>
+<li><p>创建的时候添加外键约束</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">exists</span> tb_test</span><br><span class="line">(</span><br><span class="line">tid <span class="built_in">int</span> auto_increment,</span><br><span class="line">t_name <span class="built_in">varchar</span>(<span class="number">20</span>) <span class="keyword">not</span> <span class="literal">null</span>,</span><br><span class="line"><span class="keyword">sid</span> <span class="built_in">int</span>,</span><br><span class="line">primary <span class="keyword">key</span>(tid),</span><br><span class="line"><span class="keyword">foreign</span> <span class="keyword">key</span>(<span class="keyword">sid</span>) <span class="keyword">references</span> tb_teacher(teaid)</span><br><span class="line">);</span><br></pre></td></tr></table></figure></li>
+<li><p>删除外键约束：alter table 表名 drop foreign key 外建索引名;</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> tb_student <span class="keyword">drop</span> <span class="keyword">foreign</span> <span class="keyword">key</span> fk_collid_coll;</span><br></pre></td></tr></table></figure></li>
+<li><p>多对多关系的外键约束</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">exists</span> tb_record</span><br><span class="line">(</span><br><span class="line">reid <span class="built_in">int</span> auto_increment <span class="keyword">comment</span> <span class="string">'选课记录编号'</span>,</span><br><span class="line"><span class="keyword">sid</span> <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'学生的外键'</span>,</span><br><span class="line">cid <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'课程外键'</span>,</span><br><span class="line">redate <span class="built_in">date</span> <span class="keyword">comment</span> <span class="string">'选课日期'</span>,</span><br><span class="line">score <span class="built_in">float</span> <span class="keyword">comment</span> <span class="string">'分数'</span>,</span><br><span class="line">primary <span class="keyword">key</span>(reid),</span><br><span class="line"><span class="keyword">foreign</span> <span class="keyword">key</span>(<span class="keyword">sid</span>) <span class="keyword">references</span> tb_student(stuid),</span><br><span class="line"><span class="keyword">foreign</span> <span class="keyword">key</span>(cid) <span class="keyword">references</span> tb_course(couid)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h3 id="4-高级查询"><a href="#4-高级查询" class="headerlink" title="4. 高级查询"></a>4. 高级查询</h3><p>以下的查询操作全部基于下表：</p>
+<p><img data-src="/images/pasted-3.png" alt="建立E.R关系表"></p>
+<h4 id="4-1-去重操作"><a href="#4-1-去重操作" class="headerlink" title="4.1 去重操作"></a>4.1 去重操作</h4><p>select distinct 字段名 from 表名；</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">distinct</span> redate <span class="keyword">from</span> tb_record <span class="keyword">order</span> <span class="keyword">by</span> redate;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">distinct</span> <span class="keyword">sid</span> <span class="keyword">from</span> tb_record;	<span class="comment">--	查询所有选课的学生的id</span></span><br></pre></td></tr></table></figure>
+<h4 id="4-2-限制和分页"><a href="#4-2-限制和分页" class="headerlink" title="4.2 限制和分页"></a>4.2 限制和分页</h4><ul>
+<li>限制：select * from 表名 limit N；    –    查询的时候只获取前N条数据<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> tb_record <span class="keyword">limit</span> <span class="number">5</span>;</span><br></pre></td></tr></table></figure></li>
+<li>偏移：select * from 表名 limit M offset N；    –    跳过前N条数据获取M条数据（从第N+1条数据开始获取M条数据）<br>写法二：select * from 表名 limit M,N；    –    跳过前M条获取N条数据<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> tb_record <span class="keyword">limit</span> <span class="number">7</span> <span class="keyword">offset</span> <span class="number">3</span>;	<span class="comment">--	跳过前3条获取7条数据</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> tb_record <span class="keyword">limit</span> <span class="number">3</span>,<span class="number">7</span>;	<span class="comment">--	跳过前3条获取7条数据</span></span><br><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> tb_record <span class="keyword">order</span> <span class="keyword">by</span> score <span class="keyword">desc</span> <span class="keyword">limit</span> <span class="number">3</span>;	<span class="comment">--	获取成绩前三的选课记录</span></span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h4 id="4-3-聚合"><a href="#4-3-聚合" class="headerlink" title="4.3 聚合"></a>4.3 聚合</h4><p>max（），min（），sum（），avg（），count（）        -        mysql中的方法</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">max</span>(score)<span class="keyword">as</span> max_score <span class="keyword">from</span> tb_record;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">min</span>(score)<span class="keyword">as</span> min_score <span class="keyword">from</span> tb_record;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">sum</span>(score)<span class="keyword">as</span> sum_score <span class="keyword">from</span> tb_record;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">avg</span>(score)<span class="keyword">as</span> avg_score <span class="keyword">from</span> tb_record;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">count</span>(score)<span class="keyword">as</span> c_score <span class="keyword">from</span> tb_record;	<span class="comment">--	注意：空值不参与求和、平均值的运算，也不参与个数统计</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="4-4-分组"><a href="#4-4-分组" class="headerlink" title="4.4 分组"></a>4.4 分组</h4><p>select 聚合操作 from 表名 group by （字段）；    -    按指定字段的值对表进行分组，然后对每个分组进行聚合操作。</p>
+<p>注意：分组后，除了分组字段以外，其他字段只能进行聚合操作;<br>在分组后如果需要加条件，需要用having代替where</p>
+<p>eg：获取每个学生的平均分</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">sid</span>,<span class="keyword">avg</span>(score) <span class="keyword">from</span> tb_record <span class="keyword">group</span> <span class="keyword">by</span> (<span class="keyword">sid</span>);</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-0.png" alt="每个学生平均分"></p>
+<p>获取每个学科的平均分</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> cid,<span class="keyword">avg</span>(score) <span class="keyword">from</span> tb_record <span class="keyword">group</span> <span class="keyword">by</span> (cid);</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/images/pasted-1.png" alt="每个学科平均分"></p>
+<p>获取每个学生选课数量</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">sid</span>,<span class="keyword">count</span>(cid) <span class="keyword">from</span> tb_record <span class="keyword">group</span> <span class="keyword">by</span> (<span class="keyword">sid</span>);</span><br></pre></td></tr></table></figure>
+<h4 id="4-5-子查询"><a href="#4-5-子查询" class="headerlink" title="4.5 子查询"></a>4.5 子查询</h4><p>将一个查询的结果作为另外一个查询的条件或者查询对象</p>
+<p>第一种子查询：将查询结果作为另一个查询的条件</p>
+<p>eg：获取成绩是最高分的所有学生的id</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">sid</span>,score <span class="keyword">from</span> tb_record <span class="keyword">where</span> score=(<span class="keyword">select</span> <span class="keyword">max</span>(score) <span class="keyword">from</span> tb_record);</span><br></pre></td></tr></table></figure>
+
+<p>eg：获取最高的三个分数对应的所有的学生的id</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">distinct</span> score <span class="keyword">from</span> tb_record <span class="keyword">order</span> <span class="keyword">by</span> score <span class="keyword">desc</span> <span class="keyword">limit</span> <span class="number">3</span>;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">sid</span>,score <span class="keyword">from</span> tb_record <span class="keyword">where</span> score <span class="keyword">in</span> (<span class="keyword">select</span> <span class="keyword">distinct</span> score <span class="keyword">from</span> tb_record <span class="keyword">order</span> <span class="keyword">by</span> score <span class="keyword">desc</span> <span class="keyword">limit</span> <span class="number">3</span>);<span class="comment">--注意：个别版本不支持limit的子查询操作</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 获取分数前三的所有学生的id</span></span><br><span class="line"><span class="keyword">select</span> stu_id,score <span class="keyword">from</span> tb_record <span class="keyword">where</span> score <span class="keyword">in</span>(<span class="keyword">select</span> t.score <span class="keyword">from</span> (<span class="keyword">select</span> <span class="keyword">distinct</span> score <span class="keyword">from</span> tb_record <span class="keyword">order</span> <span class="keyword">by</span> score <span class="keyword">desc</span> <span class="keyword">limit</span> <span class="number">3</span>)<span class="keyword">as</span> t);</span><br></pre></td></tr></table></figure>
+
+<p>eg：获取所有选了两门课程以上的学生的id</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">count</span>(cid) <span class="keyword">from</span> tb_record <span class="keyword">group</span> <span class="keyword">by</span> (<span class="keyword">sid</span>) <span class="keyword">having</span> <span class="keyword">count</span>(cid)&gt;<span class="number">2</span> ;</span><br></pre></td></tr></table></figure>
+<p>eg：获取所有选了两门课程以上的学生的姓名</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> stuname <span class="keyword">from</span> tb_student <span class="keyword">where</span> stuid <span class="keyword">in</span> (<span class="keyword">select</span> <span class="keyword">sid</span> <span class="keyword">from</span> tb_record <span class="keyword">group</span> <span class="keyword">by</span> (<span class="keyword">sid</span>) <span class="keyword">having</span> <span class="keyword">count</span>(cid)&gt;<span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+<p>第二种子查询：将一个查询的结果作为另一个查询的对象</p>
+<p>注意：如果要将查询结果作为查询对象，那么查询结果对应的查询必须重命名</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> tb_student <span class="keyword">limit</span> <span class="number">4</span>,<span class="number">5</span>;</span><br><span class="line"><span class="keyword">select</span> stuname <span class="keyword">from</span> (<span class="keyword">select</span> * <span class="keyword">from</span> tb_student <span class="keyword">limit</span> <span class="number">4</span>,<span class="number">5</span>) <span class="keyword">as</span> t1;	<span class="comment">--	临时表必须重命名</span></span><br></pre></td></tr></table></figure>
+<h4 id="4-6-连接查询"><a href="#4-6-连接查询" class="headerlink" title="4.6 连接查询"></a>4.6 连接查询</h4><p>同时查询多张表的数据</p>
+<ul>
+<li>内连接</li>
+</ul>
+<p>写法一：</p>
+<p>select * from 表名1，表名2，表名3，… where 连接条件 查询条件；</p>
+<p>注意：如果既有连接条件又有查询条件，查询条件必须放在连接条件后面</p>
+<p>eg：查询所有学生的名字和对应的学院的名称</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> stuname, collname <span class="keyword">from</span> tb_student,tb_college <span class="keyword">where</span> tb_student.collid=tb_college.collid;</span><br></pre></td></tr></table></figure>
+
+<p>eg：查询学生每个学科的成绩：xx（学生名字），xx（学科名），xx（分数）</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> stuname,couname,score <span class="keyword">from</span> tb_student,tb_course,tb_record <span class="keyword">where</span> tb_student.stuid=tb_record.sid <span class="keyword">and</span> tb_course.couid=tb_record.cid;</span><br></pre></td></tr></table></figure>
+<p>写法二：</p>
+<p>select * from 表1 inner join 表2 on 表2连接条件 inner join 表3 on 表3连接条件 … where 查询条件；</p>
+<p>注意：连接中，如果不写连接条件，最后会形成笛卡尔积的现象；在方法二中，如果存在中间表（衍生表），中间表要放在最前面。</p>
+<ul>
+<li>外连接</li>
+</ul>
+<p>在mySQL中，外连接只支持左外连接（left join）和右外连接（right join）</p>
+<p>表1 left join 表2：先将表1中的记录全部取出来，按连接条件去依次连接表2中的记录；如果表1中的记录在表2中不存在满足条件的记录，则该记录连接的结果为null。</p>
+<p>表1 right join 表2：原理同上。</p>
+]]></content>
+      <categories>
+        <category>数据库</category>
+      </categories>
+      <tags>
+        <tag>数据库</tag>
+        <tag>mySQL</tag>
+        <tag>查询操作</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>01.SQL基础语法</title>
+    <url>/01-sql-ji-chu-yu-fa/</url>
+    <content><![CDATA[<h3 id="1-sql基础"><a href="#1-sql基础" class="headerlink" title="1.sql基础"></a>1.sql基础</h3><p>sql又叫结构化查询语言，分为三大类：DDL（数据定义语言）、DML（数据操作语言）、DCL（数据控制语言）</p>
+<ul>
+<li>DDL：create（创建数据库和表）、drop（删除数据库和表）、alter（修改数据库和表）</li>
+<li>DML：insert（增）、delete（删）、update（改）、select（查）</li>
+<li>DCL：grant（授权）、revoke（召回授权）</li>
+</ul>
+<p>sql的注释是在注释前加–；sql中sql的关键字不区分大小写；sql语句结束后需要加分号</p>
+<h3 id="2-DDL（数据定义语言）"><a href="#2-DDL（数据定义语言）" class="headerlink" title="2. DDL（数据定义语言）"></a>2. DDL（数据定义语言）</h3><h4 id="2-1-数据库操作"><a href="#2-1-数据库操作" class="headerlink" title="2.1 数据库操作"></a>2.1 数据库操作</h4><h5 id="2-1-1-创建数据库"><a href="#2-1-1-创建数据库" class="headerlink" title="2.1.1 创建数据库"></a>2.1.1 创建数据库</h5><p>create database 数据库名称；    -    创建指定数据库，如果这个数据库已经存在，会报错</p>
+<p>create database if not exists 数据库名称；    -     当指定数据库不存在的时候创建对应的数据库</p>
+<p>create database if not exists 数据库名称 default charset utf8；    -    创建数据库的时候指定数据库文件的编码方式</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">database</span> <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">exists</span> school <span class="keyword">default</span> <span class="keyword">charset</span> utf8;</span><br></pre></td></tr></table></figure>
+<h5 id="2-1-2-删除数据库"><a href="#2-1-2-删除数据库" class="headerlink" title="2.1.2 删除数据库"></a>2.1.2 删除数据库</h5><p>drop database 数据库名称；</p>
+<p>drop database if exists 数据库名称；</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">drop</span> <span class="keyword">database</span> <span class="keyword">if</span> <span class="keyword">exists</span> school;</span><br></pre></td></tr></table></figure>
+<h5 id="2-1-3-切换-使用数据库"><a href="#2-1-3-切换-使用数据库" class="headerlink" title="2.1.3 切换/使用数据库"></a>2.1.3 切换/使用数据库</h5><p>use 数据库；    -    切换/使用指定数据库；切换后所有数据库相关操作都是针对这个数据库</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">use</span> school;</span><br></pre></td></tr></table></figure>
+<h4 id="2-2-表的操作"><a href="#2-2-表的操作" class="headerlink" title="2.2 表的操作"></a>2.2 表的操作</h4><h5 id="2-2-1-创建表（数据库文件是通过表来存数据）"><a href="#2-2-1-创建表（数据库文件是通过表来存数据）" class="headerlink" title="2.2.1 创建表（数据库文件是通过表来存数据）"></a>2.2.1 创建表（数据库文件是通过表来存数据）</h5><p>create table if not exists 表名（字段名1 类型名1 约束1，字段名2 类型名2 约束2，字段名3 类型名3 约束3，…）；</p>
+<ul>
+<li>表名：程序员自己命名，见名知意，一般需要加前缀t_/tb_表示表</li>
+<li>字段名：程序员自己命名，见名知意；注意：字段中一定要有一个字段来作为主键（可以表示唯一一条记录）；主键要求不能为空，并且是唯一的，而且类型是整型</li>
+<li>类型名：必须是当前数据库支持的数据类型，mysql中常用的数据类型：int（整型），float（浮点型），double（更大取值范围的浮点型数据），varchar（字符串）/text（字符串），bit（布尔），date/datetime（日期和时间）</li>
+<li>约束：not null（非空约束）、unique（唯一约束）、default（默认值约束）、primary key（主键约束）、foreign key（外键约束）、auto_increment（自动增长）</li>
+<li>注意：约束可以没有，也可以有多个<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="keyword">IF</span> <span class="keyword">NOT</span> <span class="keyword">EXISTS</span> tb_student</span><br><span class="line">(</span><br><span class="line">stuid <span class="built_in">int</span> PRIMARY <span class="keyword">KEY</span> auto_increment,</span><br><span class="line">stuname <span class="built_in">VARCHAR</span>(<span class="number">20</span>) <span class="keyword">not</span> <span class="literal">null</span>,</span><br><span class="line">stubirth <span class="built_in">date</span>,</span><br><span class="line">stugender <span class="built_in">bit</span> <span class="keyword">DEFAULT</span> <span class="number">1</span>,</span><br><span class="line">stutel <span class="built_in">VARCHAR</span>(<span class="number">11</span>) <span class="keyword">UNIQUE</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<h5 id="2-2-2-删除表"><a href="#2-2-2-删除表" class="headerlink" title="2.2.2 删除表"></a>2.2.2 删除表</h5>drop table if exists 表名;        -    删除指定表<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">drop</span> <span class="keyword">TABLE</span> <span class="keyword">if</span> <span class="keyword">EXISTS</span> tb_student;</span><br></pre></td></tr></table></figure>
+<h5 id="2-2-3-修改表"><a href="#2-2-3-修改表" class="headerlink" title="2.2.3 修改表"></a>2.2.3 修改表</h5></li>
+<li>添加字段</li>
+</ul>
+<p>alter table 表名 add column 字段名 字段类型 字段约束；</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_student <span class="keyword">ADD</span> <span class="keyword">COLUMN</span> stuadd <span class="built_in">VARCHAR</span>(<span class="number">200</span>);</span><br><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_student <span class="keyword">ADD</span> <span class="keyword">COLUMN</span></span><br><span class="line">(</span><br><span class="line">stuclass <span class="built_in">VARCHAR</span>(<span class="number">10</span>),</span><br><span class="line">stuheight <span class="built_in">float</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<ul>
+<li>删除字段</li>
+</ul>
+<p>alter table 表名 drop column 字段名；</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ALTER</span> <span class="keyword">table</span> tb_student <span class="keyword">drop</span> <span class="keyword">COLUMN</span> stuheight;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>修改字段名</li>
+</ul>
+<p>alter table 表名 change 原字段 新字段 新的类型；</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_student <span class="keyword">CHANGE</span> tel stutel <span class="built_in">VARCHAR</span>(<span class="number">11</span>);</span><br></pre></td></tr></table></figure>
+<ul>
+<li>添加约束</li>
+<li>删除约束</li>
+</ul>
+<h3 id="3-DML（数据操作语言）"><a href="#3-DML（数据操作语言）" class="headerlink" title="3.DML（数据操作语言）"></a>3.DML（数据操作语言）</h3><p>数据操作语言主要提供表中数据的增、删、改、查操作</p>
+<h4 id="3-1-insert"><a href="#3-1-insert" class="headerlink" title="3.1 insert"></a>3.1 insert</h4><p>insert into 表名 values（值1，值2，值3，…）；    -    按表中字段的顺序依次给每个字段赋值，最终形成一条新的记录</p>
+<p>insert into 表名（字段名1，字段名2，…）values（值1，值2，…）    -    按指定顺序给指定字段赋值，最终形成一条新的记录</p>
+<p>insert into 表名（字段名1，字段名2，…）values（第一条数据的值1，第一条数据的值2，…），（第二条数据的值1，第二条数据的值2），…；</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> tb_student <span class="keyword">values</span> (<span class="number">1001</span>,<span class="string">'狗剩'</span>,<span class="string">'1993-10-8'</span>, <span class="number">1</span>, <span class="string">'18181818001'</span>);</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> tb_student (stuname,stubirth,stutel) <span class="keyword">values</span> (<span class="string">'王大拿'</span>,<span class="string">'1990-3-17'</span>,<span class="string">'18188888888'</span>);</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> tb_student (stuname,stubirth,stugender,stutel)<span class="keyword">values</span>(<span class="string">'稻花香'</span>,<span class="built_in">date</span>(<span class="keyword">now</span>()),<span class="number">0</span>,<span class="string">'19012345678'</span>),(<span class="string">'牛王庙'</span>,<span class="string">'1999-2-13'</span>,<span class="number">1</span>,<span class="string">'18966666666'</span>),(<span class="string">'天下一剑'</span>,<span class="string">'1997-12-21'</span>,<span class="number">1</span>,<span class="string">'13190909090'</span>);</span><br></pre></td></tr></table></figure>
+<p>补充：值的问题</p>
+<ul>
+<li>字符串    -    用引号（单双都可）引起来</li>
+<li>日期（date）    -    1）日期字符串  2）date（now（））    -    当前日期  year（now（））    -    当前年    month（now（））    -    当前月：这些都是mysql的函数</li>
+<li>布尔    -    1或0 </li>
+</ul>
+<h4 id="3-2-delete"><a href="#3-2-delete" class="headerlink" title="3.2 delete"></a>3.2 delete</h4><p>delete from 表名;    -    删除当前表中所有的记录（清空表）</p>
+<p>delete from 表名 where 条件； - 删除所有满足条件的记录</p>
+<p>补充：</p>
+<ul>
+<li>sql条件语句的写法（筛选）；条件语句在写的时候可以通过加（）来改变运算的优先级</li>
+<li>比较运算：=（等于），&lt;&gt;（不等于）,&gt;,&lt;,&gt;=,&lt;=</li>
+<li>逻辑运算：and（逻辑与），or（逻辑或） ，not（逻辑非）</li>
+<li>集合包含：in eg：delete from tb_student where stuname in (‘狗剩’,’稻花香’);</li>
+<li>范围: between and</li>
+<li>判断是否为空：is null，is not null</li>
+<li>筛选：like（%表示任意个任意字符，_表示一个任意字符）<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="keyword">FROM</span> tb_student <span class="keyword">where</span> stutel <span class="keyword">like</span> <span class="string">'_3%'</span>;</span><br><span class="line"><span class="keyword">DELETE</span> <span class="keyword">FROM</span> tb_student <span class="keyword">where</span> stuname=<span class="string">'王大拿'</span>;</span><br></pre></td></tr></table></figure>
+<h4 id="3-3-update"><a href="#3-3-update" class="headerlink" title="3.3 update"></a>3.3 update</h4></li>
+</ul>
+<p>update 表名 set 字段1=新值1,字段2=新值2,…;    -    将指定表中所有记录中指定的字段修改成指定的值</p>
+<p>update 表名 set 字段1=新值1，字段2=新值2，…where 条件；    -    将满足条件的记录的指定字段设置为指定值</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">ALTER</span> <span class="keyword">table</span> tb_student <span class="keyword">add</span> <span class="keyword">COLUMN</span> stuaddr <span class="built_in">VARCHAR</span>(<span class="number">200</span>);</span><br><span class="line"><span class="keyword">UPDATE</span> tb_student <span class="keyword">set</span> stuaddr=<span class="string">'成都'</span>,stubirth=<span class="built_in">date</span>(<span class="keyword">now</span>()) <span class="keyword">where</span> stugender=<span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+<h4 id="3-4-select"><a href="#3-4-select" class="headerlink" title="3.4 select"></a>3.4 select</h4><p>select * from 表名;    -    获取指定表中所有的记录中的所有字段的数据</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> tb_student;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>映射</li>
+</ul>
+<p>select 字段1，字段2，字段3，…from 表名；    -    获取表中所有记录指定字段的数据</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> stuname,stutel <span class="keyword">FROM</span> tb_student;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>列重命名</li>
+</ul>
+<p>select 字段名1 as 新字段名1，字段名2，字段名3 as 新字段名3,… from 表名；    – as 可以省略</p>
+<p>select stuname as ‘姓名’,stutel as ‘电话’ from tb_student;<br>– 结果重新赋值（主要针对布尔）</p>
+<p>select if(字段名,值1,值2) from 表名;    -    如果if中对应的字段的值是1，最后的结果就是值1，否则是值2（mysql特有写法）</p>
+<p>通用写法：select case 字段 when 值 then 新值1 else 新值2 end<br>select stuname as ‘姓名’,if(stugender,’男’,’女’) as ‘性别’ from tb_student;</p>
+<p>ifnull(字段，值)    –    如果指定的字段值为空，则返回指定的值，否则返回字段本身</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> stuname <span class="keyword">as</span> <span class="string">'姓名'</span>,<span class="keyword">case</span> stugender <span class="keyword">when</span> <span class="number">1</span> <span class="keyword">then</span> <span class="string">'男'</span> <span class="keyword">else</span> <span class="string">'女'</span> <span class="keyword">end</span> <span class="keyword">as</span> <span class="string">'性别'</span> <span class="keyword">from</span> tb_student;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>列合并（查询的时候将多个字段合并成一个数据返回结果）</li>
+</ul>
+<p>select concat(字段1,字段2,…)from 表名;</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">CONCAT</span>(stuid,stuname) <span class="keyword">as</span> <span class="string">'information'</span> <span class="keyword">FROM</span> tb_student;</span><br></pre></td></tr></table></figure>
+<p>注：</p>
+<ul>
+<li>筛选</li>
+</ul>
+<p>上面所有的查询语法后面都可以加’where条件’对记录进行筛选<br>– select * from 表名 where 条件；</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> stuname,stutel <span class="keyword">from</span> tb_student <span class="keyword">where</span> stugender=<span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>排序</li>
+</ul>
+<p>select * from 表名 order by 字段；    -    将查询结果按指定字段的值从小到大排序</p>
+<p>select * from 表名 order by 字段 asc；    -    将查询结果按指定字段的值从小到大排序</p>
+<p>select * from 表名 order by 字段 desc；    -    将查询结果按指定字段的值从大到小排序</p>
+<p>select * from tb_student order by stugender, stubirth desc;    – 先按性别进行从小到大的排序，排序之后，再按照生日从大到小对性别相同的对象进行排序</p>
+]]></content>
+      <categories>
+        <category>数据库</category>
+      </categories>
+      <tags>
+        <tag>数据库</tag>
+        <tag>mySQL</tag>
+        <tag>SQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>shell编程</title>
+    <url>/shell-bian-cheng/</url>
+    <content><![CDATA[<h1 id="shell编程"><a href="#shell编程" class="headerlink" title="shell编程"></a>shell编程</h1><p>Shell脚本，是一种为shell编写的脚本程序。</p>
+<p>Shell编程跟JavaScript、Python编程一样，只要有一个能编写代码的文本编辑器和一个能解释执行的脚本解释器就可以了。</p>
+<p>Linux的Shell种类有很多，我们主要用的是Bourne Shell(/usr.bin/sh或/bin/sh)</p>
+<h3 id="1-创建shell文件"><a href="#1-创建shell文件" class="headerlink" title="1.创建shell文件"></a>1.创建shell文件</h3><p>原则上shell程序可以写在任何文件中，但是一般会在shell文件后加后缀.sh表示当前文件是一个shell文件</p>
+<p>shell需要可执行权限，所以创建好的shell文件需要添加x权限</p>
+<h3 id="2-基础语法"><a href="#2-基础语法" class="headerlink" title="2.基础语法"></a>2.基础语法</h3><h6 id="1）注释"><a href="#1）注释" class="headerlink" title="1）注释"></a>1）注释</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 单行注释</span></span><br><span class="line">:《（此处为两个小于符号）EOF</span><br><span class="line">多行注释1</span><br><span class="line">多行注释2</span><br><span class="line">...</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+
+<h6 id="2）输出和输入"><a href="#2）输出和输入" class="headerlink" title="2）输出和输入"></a>2）输出和输入</h6><p>echo指令就相当于python中的print函数(默认会换行)</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo  输出内容  </span><br><span class="line">echo -n 输出内容     # 输出的时候不换行</span><br></pre></td></tr></table></figure>
+
+
+
+<p>printf指令（输出不能换行）</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">printf 输出内容</span><br></pre></td></tr></table></figure>
+
+
+
+<p>输入指令:  read 变量名    – 输入内容，并且将输入的结果保存在变量中</p>
+<h6 id="3）变量"><a href="#3）变量" class="headerlink" title="3）变量"></a>3）变量</h6><p>a. 声明变量的语法:   变量名=值</p>
+<p>说明:  a. 变量名和=, =和值之间不能有空格</p>
+<p>​       b. 变量名的要求和python变量名要求一样</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">name='小明'</span><br><span class="line">age=18</span><br><span class="line">stu_name=小红</span><br></pre></td></tr></table></figure>
+
+
+
+<p>b. 使用变量: </p>
+<p>​         $变量</p>
+<p>​         ${变量}</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">age=18</span><br><span class="line">echo $age</span><br><span class="line">age2=$&#123;age&#125;</span><br></pre></td></tr></table></figure>
+
+<p>c. 只读变量</p>
+<p>使用 readonly 命令可以将变量定义为只读变量，只读变量的值不能被改变。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">gender='男'</span><br><span class="line">readonly gender</span><br><span class="line">gender='女'     # test.sh: line 17: gender: readonly variable</span><br></pre></td></tr></table></figure>
+
+<p>d. 删除变量</p>
+<p>使用 unset 命令可以删除变量</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">name='yuting'</span><br><span class="line">unset name</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="4）获取linux指令结果"><a href="#4）获取linux指令结果" class="headerlink" title="4）获取linux指令结果"></a>4）获取linux指令结果</h6><p>在shell脚本中可以直接写linux指令，在执行shell脚本的时候这些指令可以直接获取</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">ls     # ls指令</span><br><span class="line">ls  -lh      # ls指令，并且设置参数</span><br><span class="line">touch a.txt    # 创建a.txt文件</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 获取指令结果: 变量=$(指令)  /   变量=`指令`</span></span><br><span class="line">lsresult=$(ls)    #将ls指令的结果保存到变量lsresult中</span><br><span class="line">currnet_path=`pwd`</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-shell字符串"><a href="#3-shell字符串" class="headerlink" title="3.shell字符串"></a>3.shell字符串</h3><p>shell中的字符串可以用单引号也可以使用双引号甚至可以不用引号。但是单引号中不能出现单引号字符，加\也不行</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">str1='abc'</span><br><span class="line">str2="abc"</span><br><span class="line">str3=abc</span><br><span class="line">str4='abc\n123'		#支持转义字符,但是不支持编码字符</span><br><span class="line">str5="abc\n123"</span><br><span class="line"></span><br><span class="line">age=18</span><br><span class="line">str6="年龄是$age"    #双引号里面可以出现变量,单引号不行</span><br></pre></td></tr></table></figure>
+
+<h6 id="1）字符串拼接"><a href="#1）字符串拼接" class="headerlink" title="1）字符串拼接"></a>1）字符串拼接</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">str1="hello"</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash">单引号拼接</span></span><br><span class="line">str2=''$&#123;str1&#125;',world!'</span><br><span class="line">str3=''$str1',world!'</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash">双引号拼接</span></span><br><span class="line">str4="$&#123;str1&#125;,world!"</span><br><span class="line">str5=""$str1",world!"</span><br></pre></td></tr></table></figure>
+
+<h6 id="2）获取字符串长度"><a href="#2）获取字符串长度" class="headerlink" title="2）获取字符串长度"></a>2）获取字符串长度</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">str1="abcd"</span><br><span class="line">echo $&#123;#str1&#125;    # 输出4</span><br></pre></td></tr></table></figure>
+
+<h6 id="3）字符串提取"><a href="#3）字符串提取" class="headerlink" title="3）字符串提取"></a>3）字符串提取</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 字符串:下标:个数   --从字符串中指定下标开始获取指定个数字符,返回一个新的字符串</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 字符串:下标:1   -- 获取字符串中指定下标对应的字符</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 字符串:下标     -- 从指定下标开始获取到字符串最后</span></span><br><span class="line"></span><br><span class="line">string='hello world'</span><br><span class="line">echo $&#123;string:1:4&#125;    # ello</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="4-shell数组"><a href="#4-shell数组" class="headerlink" title="4.shell数组"></a>4.shell数组</h3><p>在 Shell 中，用括号来表示数组，数组元素用”空格”符号分割开。定义数组的一般形式为：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 数组名=(元素1 元素2 元素3 ...)</span></span><br><span class="line">names=(小明 小红 大黄 Tom)</span><br><span class="line">names2=(</span><br><span class="line">'小明'</span><br><span class="line">'小红'</span><br><span class="line">'大黄'</span><br><span class="line">'Tom'</span><br><span class="line">)</span><br><span class="line">names3[0]=小明</span><br><span class="line">names3[1]=小红</span><br><span class="line">names3[2]=大黄</span><br><span class="line">names3[3]=Tom</span><br></pre></td></tr></table></figure>
+
+<h6 id="1）获取数组元素：-数组-下标"><a href="#1）获取数组元素：-数组-下标" class="headerlink" title="1）获取数组元素：${数组[下标]}"></a>1）获取数组元素：${数组[下标]}</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo $&#123;names[1]&#125;    # 小红</span><br></pre></td></tr></table></figure>
+
+<h6 id="2）获取数组的长度"><a href="#2）获取数组的长度" class="headerlink" title="2）获取数组的长度"></a>2）获取数组的长度</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">nums=(100 200 300 400)</span><br><span class="line"><span class="meta">#</span><span class="bash"> 获取数组长度</span></span><br><span class="line">length=$&#123;#nums[@]&#125;</span><br><span class="line">length=$&#123;#nums[*]&#125;</span><br><span class="line"><span class="meta">#</span><span class="bash"> 获取数组指定下标对应的元素的长度</span></span><br><span class="line">length2=$&#123;#num[n]&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="5-运算符"><a href="#5-运算符" class="headerlink" title="5.运算符"></a>5.运算符</h3><p>shell中支持的运算符有:  算术运算符、关系运算符、布尔运算符、字符串运算符</p>
+<h6 id="1）算术运算符：-，-，-，-，"><a href="#1）算术运算符：-，-，-，-，" class="headerlink" title="1）算术运算符：+，-，*，/，%"></a>1）算术运算符：+，-，*，/，%</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 如果想要在shell完成数值运算，运算的语法:  `expr 运算表达式`; 并且运算符两边必须加空格</span></span><br><span class="line">re1=10+20</span><br><span class="line">echo $&#123;re1&#125;    # 10+20</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 1.加法运算</span></span><br><span class="line">re2=`expr 10 + 20`    </span><br><span class="line">echo $&#123;re2&#125;    # 30</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 2.减法运算</span></span><br><span class="line">re3=`expr 10 - 20`</span><br><span class="line">echo $&#123;re3&#125;	   # -10</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 3.乘法运算</span></span><br><span class="line">re4=`expr 10 \* 20`   # 注意:使用*作为乘法运算符的时候需要前面加\</span><br><span class="line">echo $&#123;re4&#125; 	# 200</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 4.除法运算</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 小数除法运算: `<span class="built_in">echo</span> <span class="string">"scale=小数点位数;数值1 / 数值2"</span>|bc`</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 整数除法运算: `expr 数值1 / 数值2`</span></span><br><span class="line">re5=`echo "scale=2;7 / 3"|bc`</span><br><span class="line">echo $re5</span><br><span class="line"></span><br><span class="line">re6=`expr 5 / 2`</span><br><span class="line">echo $re6</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 5.求余数</span></span><br><span class="line">re7=`expr 10 % 3`</span><br><span class="line"></span><br><span class="line">re8=`echo "10.2 + 5.1"|bc`</span><br><span class="line">echo $re8</span><br></pre></td></tr></table></figure>
+
+<h6 id="2）-关系运算符-比较运算符-，比较的是数字大小"><a href="#2）-关系运算符-比较运算符-，比较的是数字大小" class="headerlink" title="2） 关系运算符(比较运算符)，比较的是数字大小"></a>2） 关系运算符(比较运算符)，比较的是数字大小</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> -eq  ---  等于,相当于 ==</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> -ne  ---  不等于,相当于!=</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> -gt  ---  大于</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> -lt  ---  小于</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> -ge  ---  大于等于</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> -le  ---  小于等于</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 使用语法: [ 值1 关系运算符 值2 ]</span></span><br><span class="line">a=100</span><br><span class="line">b=10</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 关系运算符要配合<span class="keyword">if</span>语句或者循环语句使用</span></span><br><span class="line">if [ $a -gt $b ]</span><br><span class="line">then</span><br><span class="line">	echo a大于b</span><br><span class="line">else </span><br><span class="line">	echo a不大于b</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+
+<h6 id="3）布尔运算符-逻辑运算符"><a href="#3）布尔运算符-逻辑运算符" class="headerlink" title="3）布尔运算符(逻辑运算符)"></a>3）布尔运算符(逻辑运算符)</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> !    --  逻辑非运算</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> -o   --  逻辑或运算</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> -a   --  逻辑与运算</span></span><br><span class="line"></span><br><span class="line">age=18</span><br><span class="line">score=95</span><br><span class="line"><span class="meta">#</span><span class="bash"> 参加比赛的条件：分数大于90分并且年龄大于等于18岁</span></span><br><span class="line">if [ $age -ge 18 -a $score -gt 90 ]</span><br><span class="line">then</span><br><span class="line">	echo 可以参见比赛</span><br><span class="line">else</span><br><span class="line">	echo 不能参加比赛</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+
+<h6 id="4）字符串运算符"><a href="#4）字符串运算符" class="headerlink" title="4）字符串运算符"></a>4）字符串运算符</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> [ 字符串1 = 字符串2 ]    -- 判断两个字符串是否相等</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> [ 字符串1 != 字符串2 ]   -- 不相等</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> [ -z 字符串]   -- 判断字符串长度是否为0</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> [ -n <span class="string">"字符串"</span> ]    -- 判断字符串长度是否不为0</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> [ $ 字符串 ]   -- 判断字符串是否是空串</span></span><br><span class="line"></span><br><span class="line">a="abc"</span><br><span class="line">b="123"</span><br><span class="line"></span><br><span class="line">if [ $a = $b ]</span><br><span class="line">then</span><br><span class="line">    echo a和b相等</span><br><span class="line">else</span><br><span class="line">    echo a和b不相等</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">a=""</span><br><span class="line">if [ -n "$&#123;a&#125;" ]</span><br><span class="line">then</span><br><span class="line">    echo a的长度不为0</span><br><span class="line">else</span><br><span class="line">    echo a的长度为0</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="6-if语句"><a href="#6-if语句" class="headerlink" title="6. if语句"></a>6. if语句</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">语法1：</span><br><span class="line">if 条件语句</span><br><span class="line">then</span><br><span class="line">    满足条件执行的代码</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">语法2:</span><br><span class="line">if 条件语句</span><br><span class="line">then</span><br><span class="line">    满足条件执行的代码</span><br><span class="line">else</span><br><span class="line">    不满足条件执行的代码</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">语法3：</span><br><span class="line">if 条件语句1</span><br><span class="line">then </span><br><span class="line">    代码块1</span><br><span class="line">elif 条件语句2</span><br><span class="line">then</span><br><span class="line">    代码块2</span><br><span class="line">elif 条件语句3</span><br><span class="line">then </span><br><span class="line">    代码块3</span><br><span class="line">else</span><br><span class="line">    代码块N</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="7-for循环"><a href="#7-for循环" class="headerlink" title="7. for循环"></a>7. for循环</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">语法:</span><br><span class="line">for 变量 in 序列</span><br><span class="line">do</span><br><span class="line">    循环体</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 遍历字符串</span></span><br><span class="line">for char in "hello word"</span><br><span class="line">do</span><br><span class="line">    echo 循环体char: $&#123;char&#125;</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 遍历数组</span></span><br><span class="line">arr1=(10 20 "abc")</span><br><span class="line">for x in $&#123;arr1[@]&#125;</span><br><span class="line">do</span><br><span class="line">    echo 循环体2x: $&#123;x&#125;</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 遍历多个值</span></span><br><span class="line">for x in 10 20 "你好" 123</span><br><span class="line">do</span><br><span class="line">    echo 循环体3：$&#123;x&#125;</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-while循环"><a href="#8-while循环" class="headerlink" title="8. while循环"></a>8. while循环</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">语法:</span><br><span class="line">while 条件语句</span><br><span class="line">do</span><br><span class="line">    循环体</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 遍历字符串</span></span><br><span class="line">str1="helloWorld!"</span><br><span class="line">index=0</span><br><span class="line">len=$&#123;#str1&#125;</span><br><span class="line">while [ $index -lt $len ]</span><br><span class="line">do</span><br><span class="line">    echo $&#123;str1:$&#123;index&#125;:1&#125;</span><br><span class="line">    index=`expr $&#123;index&#125; + 1`</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 计算1+2+3+...+100</span></span><br><span class="line">num=1</span><br><span class="line">sum=0</span><br><span class="line">while [ $&#123;num&#125; -le 100 ]</span><br><span class="line">do</span><br><span class="line">    sum=`expr $&#123;sum&#125; + $&#123;num&#125;`</span><br><span class="line">    num=`expr $&#123;num&#125; + 1`</span><br><span class="line">done</span><br><span class="line">echo 1+2+3+...+100 = $&#123;sum&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 死循环</span></span><br><span class="line">while true</span><br><span class="line">do</span><br><span class="line">    read -p "请输入一个数字:" num</span><br><span class="line">    if [ $&#123;num&#125; == 100 ]</span><br><span class="line">    then</span><br><span class="line">        break</span><br><span class="line">    fi</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<h3 id="9-函数"><a href="#9-函数" class="headerlink" title="9.函数"></a>9.函数</h3><h6 id="1）函数的声明和调用"><a href="#1）函数的声明和调用" class="headerlink" title="1）函数的声明和调用"></a>1）函数的声明和调用</h6><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 1.函数的声明</span></span><br><span class="line">声明的语法：</span><br><span class="line">函数名()&#123;</span><br><span class="line">    函数体</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">调用函数语法:  函数名</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash">声明函数</span></span><br><span class="line">func1()&#123;</span><br><span class="line">    echo 你好函数1</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#</span><span class="bash">调用函数</span></span><br><span class="line">func1</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 2.有参数的函数</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 声明的时候不需要形参, 直接在函数体中通过<span class="string">'$&#123;N&#125;'</span>来获取第N个实参</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 调用的时候:  函数名 实参1 实参2 实参3 ...</span></span><br><span class="line">func2()&#123;</span><br><span class="line">    echo 函数2被调用</span><br><span class="line">    echo 第一个参数: $&#123;1&#125;</span><br><span class="line">    echo 第二个参数: $&#123;2&#125;</span><br><span class="line">    echo 第三个参数: $&#123;3&#125; </span><br><span class="line">&#125;</span><br><span class="line">func2 10 20 "abc"</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 3.函数的返回值</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">return</span> 数字   - 数字的范围是0~255</span></span><br><span class="line">func3()&#123;</span><br><span class="line">    echo 函数3被调用</span><br><span class="line">    return 256</span><br><span class="line">    #a=`expr 100 + 200`</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func3</span><br><span class="line">echo $&#123;?&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>shell</category>
+      </categories>
+      <tags>
+        <tag>脚本</tag>
+        <tag>shell</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>git常用指令</title>
+    <url>/git-chang-yong-zhi-ling/</url>
+    <content><![CDATA[<h1 id="git常用指令"><a href="#git常用指令" class="headerlink" title="git常用指令"></a>git常用指令</h1><h2 id="1-基本指令"><a href="#1-基本指令" class="headerlink" title="1.基本指令"></a>1.基本指令</h2><p><code>git init</code> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ——  新建git仓库<br><code>git add 文件/文件夹</code> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ——  将文件添加到缓存区中<br><code>git add -A</code> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; — 添加所有内容到缓存区中<br><code>git status</code> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;———    查看git状态<br><code>git commit -m  ‘提交信息’</code>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;——  将缓存区中的内容全部提交到git本地仓库中  </p>
+<p><code>git log</code>   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;——-    查看提交日志  </p>
+<p><code>git reset  -- hard   HEAD</code>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;——   让工作目录中的内容和仓库中的内容保持一致<br><code>git reset  --hard HEAD^</code>   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;——  回到上一个版本<br><code>git  reset  -- hard 版本号</code>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;——  回到指定的版本  </p>
+<p><code>git checkout  文件名</code>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ——  从暂存区中恢复工作目录中的内容(让工作区中的指定文件，回到上次提交的时候的状态)  </p>
+<p><code>git clone &lt;url&gt;</code> - 将服务器上的项目(仓库)克隆 (使用https地址需要输入密码，使用ssh地址需要添加公钥)  </p>
+<p><code>git remote add origin 地址</code>      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;—– 关联远程仓库(只需要关联一次)</p>
+<p><code>git push [-u] origin master</code>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;—– 提交(-u在第一次提交分支的时候才用)  </p>
+<p><code>git push</code>         —  将本地仓库的内容提交到远程仓库master分支上</p>
+<p><code>git push origin 分支名</code>       —  将本地仓库的内容提交到远程仓库对应的分支上, 如果分支不存在会自动创建</p>
+<p><code>git pull</code>          —  将远程仓库中的内容更新到本地仓库和工作区中</p>
+<h2 id="2-分之管理"><a href="#2-分之管理" class="headerlink" title="2.分之管理"></a>2.分之管理</h2><p>创建仓库会默认给我们创建一个master分之,这个分之一般作为提交和发布分之;开发一般会自己创建一个develop分之，用来开发和测试;多人协作的时候还可能根据不同的人或者(不同的功能)创建不同的分之，用来独立开发  </p>
+<p>常见分之： master(主要是合并develop), develop(主要合并下面的其他分支), 功能/人员分之(开发)  </p>
+<p><code>git branch [-a]</code>   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        - 查看分之<br><code>git branch 分之名</code>        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- 创建分之<br><code>git checkout   分支名</code>        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-   切换分之<br><code>git checkout -b 分之名</code>        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    - 切换并创建新的分之<br><code>git diff    分之1  分之2</code>        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- 查看两个分之之间的差异<br><code>git merge 分之名</code>            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- 让当前分之和指定分之进行合并     </p>
+<p>注意: 切换分之、push、pull，这些操作前要保证工作区是clean  </p>
+<p>怎么避免冲突：  不要发生多个分之对同一个文件在同一个版本下进行修改(和同伴确认和商量)</p>
+]]></content>
+      <categories>
+        <category>git指令</category>
+      </categories>
+      <tags>
+        <tag>git</tag>
+        <tag>仓库</tag>
+        <tag>远程仓库</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>vim的使用</title>
+    <url>/vim-de-shi-yong/</url>
+    <content><![CDATA[<h1 id="vim的使用"><a href="#vim的使用" class="headerlink" title="vim的使用"></a>vim的使用</h1><h3 id="1-vim的三种模式"><a href="#1-vim的三种模式" class="headerlink" title="1.vim的三种模式"></a>1.vim的三种模式</h3><p><b>命令模式：</b>末尾既没有插入的字样也没有冒号</p>
+<p>​        (在编辑模式和末行模式下按esc键可以进入命令模式)</p>
+<p><b>编辑模式：</b>末尾会显示’—插入—‘/‘—insert—‘， 并且在编辑模式下可以对文件进行输入操作(可以编辑)</p>
+<p>​        (在命令模式下按i就可以进入编辑模式)</p>
+<p><b>末行模式：</b>末尾显示冒号，并且冒号后边可以输入内容</p>
+<p>​        (在命令模式下输入冒号就可以进入末行模式)</p>
+<h3 id="2-vim的配置"><a href="#2-vim的配置" class="headerlink" title="2.vim的配置"></a>2.vim的配置</h3><p>通过编辑<code>~/.vimrc</code>文件或者<code>/etc/vimrc</code>文件可以对vim编辑器进行相关配置</p>
+<h3 id="3-基本操作"><a href="#3-基本操作" class="headerlink" title="3.基本操作"></a>3.基本操作</h3><h5 id="1）保存和退出"><a href="#1）保存和退出" class="headerlink" title="1）保存和退出"></a>1）保存和退出</h5><p>所有保存和退出的指令都是末行模式下执行的</p>
+<p><b>w</b>        -   只保存(相当于ctr+s)</p>
+<p><b>q</b>         -   直接退出(只有当前文件的内容全部保存才能直接退出，如果不保存强制退出，需要在q加!)</p>
+<p><b>wq</b>     -  先保存再退出</p>
+<p>注意: 强制执行在指令后加!</p>
+<h5 id="2-光标操作"><a href="#2-光标操作" class="headerlink" title="2)光标操作"></a>2)光标操作</h5><p>所有光标操作对应的指令都是在命令模式下执行的</p>
+<p><b>^</b>      -   直接将光标移动到行首</p>
+<p><b>$ </b>     -    直接将光标移动到行尾</p>
+<p><b>G</b>     -    移动到文件末尾</p>
+<p><b>gg</b>   -    移动到文件开头</p>
+<p><b>行号G</b>       -  移动到指定行号的位置</p>
+<h5 id="3-文本操作"><a href="#3-文本操作" class="headerlink" title="3)文本操作"></a>3)文本操作</h5><p>以下指令前面如果没有冒号表示在命令模式下执行，有冒号的在末行模式下执行</p>
+<p><b>dd</b>        -    删除当前光标所在的行</p>
+<p><b>数字dd</b>      -  数字如果是N， 从光标所在的位置开始删N行</p>
+<p><b>：%d</b>         -  末行模式下输入%d，删除所有</p>
+<p><b>u</b>               -   撤销</p>
+<p><b>ctr+r</b>        -  反撤销</p>
+<p><b>yy</b>            -     复制光标所在的行</p>
+<p><b>数字yy</b>         -   数字如果是N， 从光标所在的位置开始复制N行</p>
+<p><b>: %y</b>              -  末行模式下输入%y,  复制所有</p>
+<p><b>p</b>               -   粘贴</p>
+<h5 id="4-查找"><a href="#4-查找" class="headerlink" title="4)查找"></a>4)查找</h5><p><strong>：/正则表达式</strong>           -     查找当前文件中符合正则表达式的内容(结果可以用n和N来切换)</p>
+<figure class="highlight vim"><table><tr><td class="code"><pre><span class="line"><span class="keyword">vim</span>中正则表达式的要求:</span><br><span class="line"><span class="number">1</span>)<span class="keyword">python</span>正则中所有的语法都有效</span><br><span class="line"><span class="number">2</span>)单独使用有特殊功能的符号，在使用的时候需要加\才有效</span><br><span class="line">r<span class="string">'\d+'</span>    -&gt;  /\d\+</span><br><span class="line">r<span class="string">'\d&#123;3&#125;'</span>  -&gt;  /\d\&#123;<span class="number">3</span>&#125;</span><br><span class="line">r<span class="string">'and|or'</span> -&gt;  /<span class="built_in">and</span>\|<span class="built_in">or</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>：1,$s/被替换的对象对应的正则/替换内容/参数</strong>              - 将文件中正则匹配到的内容替换成指定内容</p>
+<figure class="highlight vim"><table><tr><td class="code"><pre><span class="line">参数:</span><br><span class="line">g      -    全局匹配(会替换所有符合要求的字符串，默认情况下一行只替换一个)</span><br><span class="line">i      -    匹配的时候忽略大小写</span><br><span class="line"><span class="keyword">c</span>      -    替换的时候给出提示</span><br><span class="line"><span class="keyword">e</span>      -    忽略错误(忽略正则的错误)</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="4-高级操作"><a href="#4-高级操作" class="headerlink" title="4.高级操作"></a>4.高级操作</h3><h5 id="1-比较文件"><a href="#1-比较文件" class="headerlink" title="1)比较文件"></a>1)比较文件</h5><p>vim  -d  文件路径1 文件路径2</p>
+<h5 id="2-同时打开和编辑多个文件"><a href="#2-同时打开和编辑多个文件" class="headerlink" title="2)同时打开和编辑多个文件"></a>2)同时打开和编辑多个文件</h5><p>vim  文件路径1 文件路径2 …</p>
+<figure class="highlight vim"><table><tr><td class="code"><pre><span class="line">#<span class="number">1</span>.切换窗口内容</span><br><span class="line">在末行模式下输入: <span class="keyword">ls</span>  可以查看当前打开的所有的文件和文件对象的标号</span><br><span class="line">在末行模式下输入: <span class="keyword">b</span>标号   可以将当前窗口中的内容切换到指定标号对应的文件的内容</span><br><span class="line"></span><br><span class="line">#<span class="number">2</span>.窗口的拆分</span><br><span class="line">在末行模式下输入: <span class="keyword">sp</span>/<span class="keyword">vs</span>  可以将当前窗口垂直方向/水平方向进行拆分；拆分后可以在命令模式下按ctr+<span class="keyword">w</span>来切换窗口</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>vim指令</category>
+      </categories>
+      <tags>
+        <tag>Linux</tag>
+        <tag>vim</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linux日常指令</title>
+    <url>/linux-ri-chang-zhi-ling/</url>
+    <content><![CDATA[<p>Linux是一个非常强大的系统，它具有：</p>
+<ul>
+<li>源代码完全开源</li>
+<li>支持所有的因特网协议</li>
+<li>系统工具链完整</li>
+<li>执行效率高</li>
+</ul>
+<p>等优点；因此熟练地掌握Linux系统的常用指令就显得非常重要了。</p>
+<h3 id="1-cd指令-进入文件夹"><a href="#1-cd指令-进入文件夹" class="headerlink" title="1.cd指令   -  进入文件夹"></a>1.cd指令   -  进入文件夹</h3><p>cd  文件夹路径(路径可以是绝对地址也可以是相对地址)      -  进入到指定路径对应的文件夹</p>
+<p>cd  ..              -   返回上层目录</p>
+<p>cd  /               -  进入操作系统根目录</p>
+<p>cd ~               -  进入电脑的文件系统根目录</p>
+<h3 id="2-ls指令-显示当前目录中的内容"><a href="#2-ls指令-显示当前目录中的内容" class="headerlink" title="2.ls指令   - 显示当前目录中的内容"></a>2.ls指令   - 显示当前目录中的内容</h3><p>ls                  -   直接显示当前文件夹中的内容的名字(隐藏文件和文件夹看不到)</p>
+<p>ls   -l/-lh      -   显示当前文件夹中的内容和内容的基本信息(隐藏文件和文件夹看不到)</p>
+<p>ls   -a           -   显示当前文件夹中所有的内容(包括隐藏文件)</p>
+<p>ls  -R            -  递归显示当前目录以及当前目录下所有的子目录中的内容</p>
+<p>ls   -r            -  内容倒序显示</p>
+<p>ls  -S/-t        -   显示文件夹中的内容，并且内容按大小/时间从大到小排序</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">ls  -Sr     -   按大小从小到大排序</span><br><span class="line">ls  -Srlh   -   按大小从小到大排序,并且显示内容的基本信息</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-pwd指令"><a href="#3-pwd指令" class="headerlink" title="3. pwd指令"></a>3. pwd指令</h3><p>pwd             -   查看当前目录的绝对路径(系统目录下的)</p>
+<h3 id="4-文件操作"><a href="#4-文件操作" class="headerlink" title="4.文件操作"></a>4.文件操作</h3><p>1）touch指令      -   新建文件</p>
+<p>touch   文件路径         -  在指定位置创建指定文件</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">touch a.txt      - 在当前目录下新建一个文件a.txt</span><br><span class="line">touch ..&#x2F;a.txt   - 在当前目录的上层目录新建一个文件a.txt</span><br><span class="line">touch &#x2F;home&#x2F;a&#x2F;a.txt     -  在根目录下home目录中的a目录里面创建一个文件a.txt</span><br></pre></td></tr></table></figure>
+
+<p>2) cat指令         -     查看文件内容(读文件)</p>
+<p>cat    文件路径             -  读取指定路径对应的文件的内容</p>
+<p>3) vim指令   </p>
+<p>vim   文件路径            -  使用vim打开文件</p>
+<p>###5.文件夹操作</p>
+<p>1) mkdir指令           -   新建文件夹</p>
+<p>mkdir  文件夹路径       -   在指定位置创建文件夹</p>
+<p>mkdir  -p  文件夹路径     -  在指定位置创建文件夹(会创建目录中所有不存在的文件夹)</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">mkdir -p  a&#x2F;b&#x2F;c     - a,b,c可以都没有，会在当前目录中创建a,在a中创建b，b中创建c</span><br><span class="line">mkdir -p  a&#x2F;&#123;b,c&#125;   - a,b,c可以都没有，会在当前目录中创建a,在a中创建b和c</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-删除文件和文件夹"><a href="#6-删除文件和文件夹" class="headerlink" title="6.删除文件和文件夹"></a>6.删除文件和文件夹</h3><p>1)rm指令       -    删除文件和文件夹</p>
+<p>rm   文件路径            -  删除指定文件(删除的时候会循环是否确定删除，y-同意， n-不同意)</p>
+<p>rm  -f  文件路径        -  删除指定文件（删除的时候不询问）</p>
+<p>rm  -r  文件夹路径    -  删除指定文件夹</p>
+<p>2) rmdir指令      -    删除空目录</p>
+<p>rmdir  文件夹路径       -   删除指定文件夹(这个文件夹必须是空的)</p>
+<p>3)cp指令           -      拷贝</p>
+<p>cp 文件路径1  文件路径2        - 将文件路径1指定的文件中的内容复制到文件路径2指定的文件中(文件路径2对应的                                        文件本身是不存在) </p>
+<p>​                          - 将文件1中的内容复制粘贴到文件2(如果文件2不存，会自动创建；如果存在会询问                             是否覆盖)</p>
+<p>cp   文件路径    文件夹路径      -  将指定文件复制粘贴到指定文件夹中</p>
+<p>cp  -r  文件夹路径1  文件夹路径2    - 将文件夹1复制粘贴到文件夹2中</p>
+<p>4)mv指令       -  移动</p>
+<p>mv   文件路径1   文件路径2       -  将文件1移动文件2所在的位置</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">mv  文件名1  文件名2     -  对文件进行重命名(将文件名1修改为文件名2)</span><br><span class="line">mv  a.txt   b.txt      -  将当前文件夹中的a.txt重命名为b.txt</span><br><span class="line">mv  &#x2F;home&#x2F;a.txt  &#x2F;home&#x2F;b.txt    -  将系统根目录下home文件中的a.txt重命名为b.txt</span><br></pre></td></tr></table></figure>
+
+
+
+<p>mv   文件路径   文件夹路径           -  将文件直接移动到指定文件夹中</p>
+<p>mv   文件夹路径1  文件夹路径2     -  将文件夹1移动到文件夹2中</p>
+<h3 id="7-history指令-获取历史记录-指令的历史记录"><a href="#7-history指令-获取历史记录-指令的历史记录" class="headerlink" title="7.history指令    -  获取历史记录(指令的历史记录)"></a>7.history指令    -  获取历史记录(指令的历史记录)</h3><p>history     -  显示当前系统已经执行过的所有的指令</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">如果想要显示历史记录的时候显示指令执行的时间需要修改~/.bashrc文件:</span></span><br><span class="line">export  HISTTIMEFORMAT="[%y‐%m‐%d_%T] " </span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改完成后需要通过指令: <span class="built_in">source</span> ~/.bashrc 去执行这个配置文件， 最后历史记录的时间才会生效</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="8-创建连接"><a href="#8-创建连接" class="headerlink" title="8. 创建连接"></a>8. 创建连接</h3><h6 id="1-创建软连接（掌握-）"><a href="#1-创建软连接（掌握-）" class="headerlink" title="1)创建软连接（掌握!）"></a>1)创建软连接（掌握!）</h6><p>ln -s  源文件路径  软连接文件地址     - 给源文件在指定位置创建一个软连接(软连接本质就是用来保存源文件绝对                                地址的一个文件， 可以理解为windows中的快捷方式)</p>
+<p>​                                 注意: 源文件路径必须写绝对路径</p>
+<p>​                                如果删除或者移动源文件，软连接会直接无效</p>
+<p>######2)创建硬链接</p>
+<p>ln  源文件路径  硬连接文件地址      -    给源文件在指定位置创建一个硬链接</p>
+<p>​                                硬链接的本质就是源文件内容的另外一个引用，所以删除或者移动源文件硬                                        链接仍然有效，只是删除硬链接会变成普通文件</p>
+<h3 id="9-进程相关指令"><a href="#9-进程相关指令" class="headerlink" title="9.进程相关指令"></a>9.进程相关指令</h3><h6 id="1-ps指令"><a href="#1-ps指令" class="headerlink" title="1) ps指令"></a>1) ps指令</h6><p>ps                 - 查看进程状态</p>
+<p>ps -aux         - 查看当前所有的进程的信息</p>
+<p>ps  grep 进程名/进程ID     -  根据进程名/进程ID查看指定进程</p>
+<h6 id="2-top指令"><a href="#2-top指令" class="headerlink" title="2)top指令"></a>2)top指令</h6><p>top           -    实时查看当前所有的进程信息和系统信息</p>
+<p>top -p  PID1,PID2,….     - 实时监测指定的进程</p>
+<h6 id="3-free指令"><a href="#3-free指令" class="headerlink" title="3)free指令"></a>3)free指令</h6><p>free      -   显示当前系统的内存信息，显示的时候以kb为单位</p>
+<p>free  -单位    - 显示当前系统的内存信息，以指定单位来显示</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">free -m    - 显示当前系统的内存信息，以Mb为单位</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="4-kill指令"><a href="#4-kill指令" class="headerlink" title="4)kill指令"></a>4)kill指令</h6><p>kill 进程ID       -  杀掉指定id对应的进程</p>
+<p>kill -1/-9/-15 进程ID      -  以指定的方式(-1表示不间断重启; -9表示强制杀死进程；-15表示正常结束进程)杀掉指定                                   进程</p>
+<p>pkill  进程名      - 杀死指定进程名对应的进程(中间可以加-1/-9/-15)</p>
+<p>killall   进程名    - 杀死和进程名相关的所有进程</p>
+<h6 id="5-uptime"><a href="#5-uptime" class="headerlink" title="5)uptime"></a>5)uptime</h6><p>uptime     -  获取系统信息</p>
+<h3 id="10-用户管理"><a href="#10-用户管理" class="headerlink" title="10.用户管理"></a>10.用户管理</h3><p>一个Linux操作系统可以有多个用户(user)，也可以有多个用户组(group); 用户和用户组之间的关系是多对多</p>
+<p>users    -   查看当前用户</p>
+<p>groups   -  查看当前分组</p>
+<p>groupadd  分组名       -  创建分组(管理员才能创建; 可以通过查看/etc/group文件来查看当前系统所有的分组)</p>
+<p>useradd  用户名          - 创建指定用户(1.用户创建成功后系统会自动在/home目录下创建一个和用户名同名的文件                    夹；2.会自动创建和用户名同名的分组，并且将当前用户添加到这个分组中)</p>
+<p>useradd -G  分组1,分组2,…   用户名    -  创建指定用户，并且将用户添加到指定分组中</p>
+<p>usermod -G  分组1,分组2  用户名       -  修改用户分组</p>
+<p>password 用户名         -  修改用户密码(需要root权限)</p>
+<p>su 用户名        -  切换账号(root登录的时候切换不需要密码，其他账号需要)</p>
+<p>exit             -    退出当前账号</p>
+<p>sudo           -  在命令前sudo是以管理员身份执行指令</p>
+<p>注意:      不是所有的用户都可以通过sudo来以管理员身份执行指令，如果想要能够使用sudo必须添加配置    </p>
+<p>​        a.ubuntu:  将需要有管理员身份的账号添加到sudo分组中</p>
+<p>​        b.redhat和contos: 在/etc/sudoers配置文件中添加代码：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"><span class="comment"># Allow root to run any commands anywhere</span></span></span><br><span class="line">root    ALL=(ALL)       ALL     #(默认有的)</span><br><span class="line">xiaoming ALL=(ALL)      ALL		#(自己添加的，xiaoming是用户名)</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="11-文件权限"><a href="#11-文件权限" class="headerlink" title="11.文件权限"></a>11.文件权限</h3><table>
+<thead>
+<tr>
+<th>文件类型</th>
+<th>所有者权限</th>
+<th>同组用户权限</th>
+<th>其他用户权限</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-/d/l</td>
+<td>rwx</td>
+<td>r-x</td>
+<td>r-x</td>
+</tr>
+</tbody></table>
+<p>默认情况下文件和文件夹的权限: 文件所有者有读写权限， 同组用户和其他用户都是只读权限。</p>
+<p>######1）chmod指令</p>
+<p>chmod 权限值   文件路径        - 将指定文件的权限修改成指定值</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">权限：     rwx r-- rw-</span><br><span class="line">权限二进制：111 100 110  </span><br><span class="line">权限值:    7   4   6</span><br><span class="line">chmod 746 文件路径</span><br><span class="line"></span><br><span class="line">权限:     rwx rwx rwx</span><br><span class="line">权限值:    7    7  7</span><br><span class="line">chmod 777 文件路径</span><br></pre></td></tr></table></figure>
+
+
+
+<p>chmod  [a,u,g,o]/[+-]/[r,w,x]  文件地址      - 给指定文件对应指定用户添加或者删除指定权限</p>
+<p>​                                                                         (a-所有用户，u-文件所有者,g-同组用户,o-其他用户；</p>
+<p>​                                      +表示添加权限， -表示删除权限;</p>
+<p>​                                      r-表示读权限, w表示写权限,x表示执行权限)</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">chmod a-x 文件地址     #  删除所有用户的执行权限</span><br><span class="line">chmod u+w  文件地址    #  给文件所有者添加写的权限</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="12-日志管理"><a href="#12-日志管理" class="headerlink" title="12.日志管理"></a>12.日志管理</h3><p>######1)显示文件内容</p>
+<p>a.cat指令   -  直接显示文件中所有的内容</p>
+<p>cat 文件    -  直接查看文件所有内容</p>
+<p>总结: 查看文件内容的时候可以加参数-n，让内容在显示的时候显示行号</p>
+<p>b.查看部分内容</p>
+<p>head   N  文件地址    - 显示指定文件前N行内容(-n参数无效)</p>
+<p>tail    N  文件地址       -  显示指定文件最后N行内容(-n参数无效)</p>
+<p>c.分页显示</p>
+<p>less  文件       -  按页显示文件内容(通过快捷键控制内容显示过程； 文件内容不会打印到shell/终端里)</p>
+<p>less  -N 文件   -  按页显示文件内容，每次翻页的时候翻N行</p>
+<p>more  文件      - 按页显示文件内容(通过快捷键控制内容显示过程； 文件内容会打印到shell/终端里)</p>
+<p>more  -N 文件   -  按页显示文件内容，每次翻页的时候翻N行</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">快捷键:</span><br><span class="line"></span><br><span class="line">- 按 j 向下一行</span><br><span class="line"></span><br><span class="line">- 按 k 向上一行</span><br><span class="line"></span><br><span class="line">- 按 f 向下翻一页</span><br><span class="line"></span><br><span class="line">- 按b 向上翻一页</span><br><span class="line"></span><br><span class="line">- 按 g 到全文开头</span><br><span class="line"></span><br><span class="line">- 按 G 到全文结尾</span><br><span class="line"></span><br><span class="line">- 按 Q 退出</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="2-结果的处理"><a href="#2-结果的处理" class="headerlink" title="2)结果的处理"></a>2)结果的处理</h5><p>凡是有的打印结果的指令，我们都可以通过相关指令对应结果进行处理</p>
+<p>######a. 管道 - |</p>
+<p>如果需要对某一个指令的结果使用另外的指令进行二次处理的时候，就需要用到管道(|)</p>
+<h6 id="b-sort-排序"><a href="#b-sort-排序" class="headerlink" title="b.sort    - 排序"></a>b.sort    - 排序</h6><p>sort     -  从小到大排序(将一行内容作为一个字符串，按字符串大小对应内容进行排序，默认不区分大小写)</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat a.txt |sort      # 对a.txt的文件内容从小到大排序显示</span><br><span class="line"></span><br><span class="line">sort的参数:</span><br><span class="line">-r   - 逆序</span><br><span class="line">-nk 1  - 数值大小排序</span><br><span class="line">-nk 2  - 字符大小排序(默认)</span><br><span class="line"></span><br><span class="line">cat a.txt|sort -nk 1    # 对a.txt的文件内容按数字大小从小到大排序</span><br><span class="line">cat a.txt|sort -rnk 1    # 对a.txt的文件内容按数字大小从大到小排序</span><br><span class="line">cat a.txt|sort -nk 2    # 对a.txt的文件内容按字符大小从小到大排序(默认)</span><br><span class="line">cat a.txt|sort -rnk 2    # 对a.txt的文件内容按字符大小从大到小排序</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="c-uniq-去重"><a href="#c-uniq-去重" class="headerlink" title="c.uniq   -去重"></a>c.uniq   -去重</h6><p>uniq     - 只能将紧挨着的相同行去掉重复的(如果需要去掉所有重复的行，先排序将相同的行放到一起)</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cat a.txt|uniq     # 去掉a.txt文件内容中相邻重复的行</span><br><span class="line">cat a.txt|sort|uniq   # 去掉a.txt文件内容中所有重复的行</span><br><span class="line"></span><br><span class="line">uniq的参数</span><br><span class="line">-c     - 重复次数</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="d-awk-获取列"><a href="#d-awk-获取列" class="headerlink" title="d.awk  - 获取列"></a>d.awk  - 获取列</h6><p>awk ‘{print $N}’      -  获取内容中第N列的数据</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">history|awk '&#123;print $2&#125;'    # 获取历史记录第2列的内容</span><br><span class="line">history|awk '&#123;print $2,$3&#125;'  # 获取历史记录第2列和第3列的内容</span><br></pre></td></tr></table></figure>
+
+
+
+<p>练习:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">history |awk '&#123;print $4&#125;' |sort |uniq ‐c | sort ‐rnk 1 | head ‐n 3    # 统计最常用的3个指令及其使用次数</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="3）输出重定向-gt-gt-gt"><a href="#3）输出重定向-gt-gt-gt" class="headerlink" title="3）输出重定向   -    &gt;/&gt;&gt;"></a>3）输出重定向   -    &gt;/&gt;&gt;</h5><p>执行有打印结果的指令  &gt;  文件地址     -  将指定指令执行的结果保存到指定文件中(先清除原文件内容再添加)</p>
+<p>执行有打印结果的指令  &gt;&gt;  文件地址    -  将指定指令执行的结果保存到指定文件中(直接将结果追加到原文件中)</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">history &gt; a.txt     #将当前历史记录直接保存到a.txt文件中</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 将最常用的3个指令及其使用次数保存到a.txt文件中</span></span><br><span class="line">history |awk '&#123;print $4&#125;' |sort |uniq ‐c | sort ‐rnk 1 | head ‐n 3 &gt; a.txt</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="4-统计"><a href="#4-统计" class="headerlink" title="4)统计"></a>4)统计</h5><p>wc  -c/-w/-l   文件地址        - 统计指定文件中字符/单词/行的数量</p>
+<h5 id="5-查找"><a href="#5-查找" class="headerlink" title="5)查找"></a>5)查找</h5><p>######grep   - 找内容</p>
+<p>a.  grep  内容  文件地址       - 在指定文件中查找指定内容(返回文件中所有包含指定内容的行)</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">grep you a.txt    # 获取a.txt中包含you的所有的行</span><br><span class="line"></span><br><span class="line">grep的参数:</span><br><span class="line">-n      - 显示结果的时候显示行号</span><br><span class="line">-i      - 查找内容的时候忽略大小写</span><br><span class="line">-E      - 按正则表达式进行匹配   </span><br><span class="line">		  使用方法： grep -E '正则表达式' 文件</span><br><span class="line">		  注意: Linux操作系统中正则表达式不支持:\d,\D,\w,\W,\s,\S,\b,\B; 其他语法都支持</span><br><span class="line">-v      - 忽略字段</span><br><span class="line">		  grep you a.txt  -v  # 获取a.txt中不包含you的所有的行</span><br></pre></td></tr></table></figure>
+
+
+
+<p>b.  执行有打印结果的指令 |grep 内容      - 在指令执行结果中查找指定内容</p>
+<p>c. grep -r  内容 文件夹地址     -在指定文件夹中所有的文件中查找指定内容</p>
+<p>######find   - 找文件</p>
+<p>find  文件夹路径  -name    文件名     -  在指定文件夹下按文件名找指定文件</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 找指定文件名</span></span><br><span class="line">find dir1 -name 'test1.py'      # 在文件夹dir1找名字是test1.py的文件</span><br><span class="line">find dir1 -name '*.txt'         # 在文件夹dir1找后缀是txt的所有文件</span><br><span class="line">find dir1 -name 'test*.txt'</span><br><span class="line">find dir1 -name 'test*'</span><br><span class="line">find dir1 -name '*c.txt'</span><br></pre></td></tr></table></figure>
+
+<p>find  文件夹路径  -size  +/-文件大小       - 在指定文件夹下找文件大小满足条件的所有的文件</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">find dir1 -size +4k       # 查找在文件夹dir1中所有大于4k的文件</span><br><span class="line">find dir1 -size -4k       # 查找在文件夹dir1中所有小于4k的文件</span><br><span class="line">find dir1 -size +5k -size -10k  # 查找在文件夹dir1中所有大于5k并且小于10k的文件(文件大小如果是小数，算的时候向上取整)</span><br><span class="line">find dir1 -size +4k -name '*.txt'   # 查找在文件夹dir1中所有大于4k的txt文件</span><br></pre></td></tr></table></figure>
+
+
+
+<h6 id="查指令"><a href="#查指令" class="headerlink" title="查指令"></a>查指令</h6><p>which 指令名       -精确查找当前指令对应的文件的路径</p>
+<p>whereis 指令名     -查找和指定指令相关的所有的文件的路径</p>
+<p>man   指令名        -获取指定指令的使用手册</p>
+<p>指令名   — help    -获取指定指令的帮助文档</p>
+<h3 id="13-Linux系统启停服务"><a href="#13-Linux系统启停服务" class="headerlink" title="13.Linux系统启停服务"></a>13.Linux系统启停服务</h3><pre><code>~ 启动：systemctl start nginx
+
+        service nginx start
+
+~ 停止：systemctl stop nginx
+
+        service nginx stop
+
+~ 重启：systemctl restart nginx
+
+~ 查看状态：systemctl status nginx
+
+~ 开机自启：systemctl enable nginx
+
+~ 禁用自启：systemctl disable nginx</code></pre>]]></content>
+      <categories>
+        <category>Linux指令</category>
+      </categories>
+      <tags>
+        <tag>Linux</tag>
+        <tag>vim</tag>
+      </tags>
+  </entry>
+</search>

@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/favicon.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://hanlin.fun').hostname,
+    root: '/',
+    scheme: 'Muse',
+    version: '7.6.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":null},
+    back2top: {"enable":true,"sidebar":true,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+
+
+  <meta name="description" content="利用Python中的Django框架做前后端分离的开发，以实现高解耦合的restful的代码">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Django中做前后端分离的开发">
+<meta property="og:url" content="https://hanlin.fun/django-zhong-zuo-qian-hou-duan-fen-chi-de-kai-fa/index.html">
+<meta property="og:site_name" content="霖时人間">
+<meta property="og:description" content="利用Python中的Django框架做前后端分离的开发，以实现高解耦合的restful的代码">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-01-11T12:46:00.000Z">
+<meta property="article:modified_time" content="2020-01-21T05:15:58.577Z">
+<meta property="article:author" content="霖">
+<meta property="article:tag" content="django">
+<meta property="article:tag" content="DRF">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://hanlin.fun/django-zhong-zuo-qian-hou-duan-fen-chi-de-kai-fa/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Django中做前后端分离的开发 | 霖时人間</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="霖时人間" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <!-- <div class="headband"><a href="https://github.com/zzd6263165" target="_blank" rel="noopener" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style></div> -->
+    
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">霖时人間</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">相信的心就是你的魔法</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://hanlin.fun/django-zhong-zuo-qian-hou-duan-fen-chi-de-kai-fa/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="霖">
+      <meta itemprop="description" content="センスに自信がある">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="霖时人間">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Django中做前后端分离的开发
+        </h1>
+
+        <div class="post-meta">
+          <!-- 添加置顶标志 -->
+          
+
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-11 20:46:00" itemprop="dateCreated datePublished" datetime="2020-01-11T20:46:00+08:00">2020-01-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-21 13:15:58" itemprop="dateModified" datetime="2020-01-21T13:15:58+08:00">2020-01-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/django%E6%A1%86%E6%9E%B6%E4%BD%BF%E7%94%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">django框架使用</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+            <div class="post-description">利用Python中的Django框架做前后端分离的开发，以实现高解耦合的restful的代码</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="前后端分离概述"><a href="#前后端分离概述" class="headerlink" title="前后端分离概述"></a>前后端分离概述</h3><p>前端（英语：front-end）和后端（英语：back-end）是描述进程开始和结束的通用词汇。前端作用于采集输入信息，后端进行处理。计算机程序的界面样式，视觉呈现属于前端。在软体架构和程序设计领域，前端是软体系统中直接和用户交互的部分，而后端控制着软件的输出。将软体分为前端和后端是一种将软体的不同的功能部分相互分离的抽象的划分方式。</p>
+<p>(<a href="https://zh.wikipedia.org/wiki/%E5%89%8D%E7%AB%AF%E5%92%8C%E5%90%8E%E7%AB%AF）" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/%E5%89%8D%E7%AB%AF%E5%92%8C%E5%90%8E%E7%AB%AF）</a></p>
+<p>在传统的Web应用开发中，大多数的程序员会将浏览器作为前后端的分界线。将浏览器中为用户进行页面展示的部分称之为前端，而将运行在服务器，为前端提供业务逻辑和数据准备的所有代码统称为后端。</p>
+<p>相较于使用MVC框架，前后端开发未能分离的时期，前后端分离的开发具有很多的优势：</p>
+<ul>
+<li><p>能够有效地实现前后端代码的解耦合，前后端的开发变得相对独立，且不会出现之前那样相互制约的情况，这为前后端工程师的开发工作提供了极大的便利，开发工作变得更加简单和高效。</p>
+</li>
+<li><p>代码的更新和维护变得更加简单，在前后端代码未能实现较好的解耦合的时期，在对代码进行更新和维护的时候常常会出现牵一发而动全身的现象，而前后端分离的开发则有效地规避了这种现象。</p>
+</li>
+</ul>
+<ul>
+<li>可扩展和可移植性更强，为以后的大型分布式架构、弹性计算架构、微服务架构、多端化服务（多种客户端，例如：浏览器，车载终端，安卓，IOS等等）打下坚实的基础。</li>
+</ul>
+<p>前后端开发的核心思想就是：前端HTML页面通过AJAX调用后端的RESTFUL API接口并使用JSON数据进行交互。</p>
+<h3 id="后端"><a href="#后端" class="headerlink" title="后端"></a>后端</h3><p>诚如上文中提到的那样，在前后端分离的开发模式下，后端的工作主要是为前端提供数据接口，而这些接口提供的通常是JSON格式的数据。</p>
+<p>在Django的框架下，我们可以利用它自带的函数<code>JsonResponse</code>向浏览器返回Json格式的数据</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show_subjects</span><span class="params">(request)</span>:</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    subjects = []</span><br><span class="line">    <span class="keyword">for</span> subject <span class="keyword">in</span> queryset:</span><br><span class="line">        subjects.append(&#123;</span><br><span class="line">            <span class="string">'no'</span>: subject.no,</span><br><span class="line">            <span class="string">'name'</span>: subject.name,</span><br><span class="line">            <span class="string">'intro'</span>: subject.intro,</span><br><span class="line">            <span class="string">'isHot'</span>: subject.is_hot</span><br><span class="line">        &#125;)</span><br><span class="line">    <span class="keyword">return</span> JsonResponse(subjects, safe=<span class="literal">False</span>)</span><br><span class="line">    <span class="string">"""这里需要注意，JsonResponse默认是将列表序列化成json格式的数据，当我们希望对字典对象进行序列化时，必须指定参数safe为False，否则会出现TypeError的错误"""</span></span><br></pre></td></tr></table></figure>
+
+<p>通过上述示例我们可以发现，在使用<code>JsonResponse</code>对数据进行序列化之前，我们需要先手动将<code>queryset</code>查询集对象转换为列表或者字典，那有没有什么方法或者工具能帮我们自动完成这个过程呢？</p>
+<p>在Django中，我们可以使用第三方库<code>bpmappers</code>来协助我们将<code>queryset</code>查询集转换成字典或者列表，有了这个工具，我们就可以改写上面的代码了。</p>
+<h4 id="安装bpmappers"><a href="#安装bpmappers" class="headerlink" title="安装bpmappers"></a>安装<code>bpmappers</code></h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install bpmappers</span><br></pre></td></tr></table></figure>
+
+<h4 id="编写映射器"><a href="#编写映射器" class="headerlink" title="编写映射器"></a>编写映射器</h4><p>我们可以在应用目录下新建一个名为“mappers.py”的py文件来配置映射器</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> bpmappers.djangomodel <span class="keyword">import</span> ModelMapper</span><br><span class="line"><span class="comment"># 这里要导入ModelMapper和我们创建的Subject模型</span></span><br><span class="line"><span class="keyword">from</span> poll.models <span class="keyword">import</span> Subject</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectMapper</span><span class="params">(ModelMapper)</span>:</span></span><br><span class="line">   </span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        model = Subject</span><br><span class="line"><span class="comment"># 指定映射器要映射的模型</span></span><br></pre></td></tr></table></figure>
+
+<p>编写好映射器之后我们就可以对我们的视图函数进行改写了</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show_subjects</span><span class="params">(request)</span>:</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    subjects = []</span><br><span class="line">    <span class="keyword">for</span> subject <span class="keyword">in</span> queryset:</span><br><span class="line">        subjects.append(SubjectMapper(subject).as_dict())</span><br><span class="line">    <span class="keyword">return</span> JsonResponse(subjects, safe=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+
+<p>如上述代码所示，我们在<code>mappers.py</code>中创建的映射器会帮助我们将<code>queryset</code>查询集中的对象转换成字典，之后我们再将这些字典数据放到列表中，最后利用<code>JsonResponse</code>进行序列化。这样的方式在针对有很多字段的复杂的表的时候，其效率远远高于手动转换。</p>
+<p>上述的这些通过在视图里使用函数来处理前端请求的方式我们把它称为FBV，即基于函数的视图。</p>
+<p>然而，Python是一个面向对象的编程语言，如果只用函数来开发，有很多面向对象的优点就错失了（继承、封装、多态）。所以Django在后来加入了CBV。可以让我们用类写视图。这样做的优点主要下面两种：</p>
+<ul>
+<li><p>提高了代码的复用性，可以使用面向对象的技术，比如Mixin（多继承）</p>
+</li>
+<li><p>可以用不同的函数针对不同的HTTP方法处理，而不是通过很多if判断，提高代码可读性</p>
+</li>
+</ul>
+<h3 id="DRF-Django-REST-framework"><a href="#DRF-Django-REST-framework" class="headerlink" title="DRF-Django REST framework"></a>DRF-Django REST framework</h3><p>在Django框架中，我们可以使用第三方库<code>djangorestframework</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install djangorestframework</span><br></pre></td></tr></table></figure>
+<p>在安装了第三方库<code>djangorestframework</code>之后，我们可以在项目目录下创建一个名为“serializers.py”的py文件</p>
+<p>然后在这个文件中创建序列化所需要的类</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> rest_framework <span class="keyword">import</span> serializers</span><br><span class="line"><span class="keyword">from</span> poll.models <span class="keyword">import</span> Subject</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectSerializer</span><span class="params">(serializers.ModelSerializer)</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span></span><br><span class="line">        model = Subject</span><br><span class="line">        fields = (<span class="string">'no'</span>, <span class="string">'name'</span>, <span class="string">'intro'</span>, <span class="string">'isHot'</span>)</span><br></pre></td></tr></table></figure>
+<p>然后我们再次对视图进行改写</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> rest_framework.viewsets <span class="keyword">import</span> ModelViewSet</span><br><span class="line"><span class="keyword">from</span> poll.serializers <span class="keyword">import</span> SubjectSerializer</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SubjectView</span><span class="params">(ModelViewSet)</span>:</span></span><br><span class="line">    queryset = Subject.objects.all()</span><br><span class="line">    serializer_class = SubjectSerializer</span><br></pre></td></tr></table></figure>
+<p>最后我们在urls中配置路径</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> poll.views <span class="keyword">import</span> SubjectView</span><br><span class="line"></span><br><span class="line">urlpatterns = [</span><br><span class="line">    path(<span class="string">'subjects/'</span>, SubjectView.as_view()),</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p>完成上述步骤之后我们就可以获得数据接口了。</p>
+<p>参考文献：<br>Python-100-Days:<a href="https://github.com/jackfrued/Python-100-Days/blob/master/Day41-55/48.%E5%89%8D%E5%90%8E%E7%AB%AF%E5%88%86%E7%A6%BB%E5%BC%80%E5%8F%91%E5%85%A5%E9%97%A8.md" target="_blank" rel="noopener">https://github.com/jackfrued/Python-100-Days/blob/master/Day41-55/48.%E5%89%8D%E5%90%8E%E7%AB%AF%E5%88%86%E7%A6%BB%E5%BC%80%E5%8F%91%E5%85%A5%E9%97%A8.md</a></p>
+
+    </div>
+
+    <div>
+      
+      <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">------ 本文结束------</div>
+    
+</div>
+
+      
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div></div>
+  <button disable="enable" onclick="var qr = document.getElementById(&quot;qr&quot;); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    打赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechat.png" alt="霖 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.jpg" alt="霖 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>霖
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://hanlin.fun/django-zhong-zuo-qian-hou-duan-fen-chi-de-kai-fa/" title="Django中做前后端分离的开发">https://hanlin.fun/django-zhong-zuo-qian-hou-duan-fen-chi-de-kai-fa/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/django/" rel="tag"><i class="fa fa-tag"></i> django</a>
+              <a href="/tags/DRF/" rel="tag"><i class="fa fa-tag"></i> DRF</a>
+          </div>
+
+        
+
+
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/django-ji-chu/" rel="prev" title="Django基础与投票应用">
+      <i class="fa fa-chevron-left"></i> Django基础与投票应用
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+    <!-- 解决不了，这个是分享二维码，暂时用不了 -->
+    <!-- <div class="pjaxqrcode" id="qrcode"></div>
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script>
+  $('#qrcode').qrcode(window.location.href);
+</script> -->
+
+    
+
+
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#前后端分离概述"><span class="nav-number">1.</span> <span class="nav-text">前后端分离概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#后端"><span class="nav-number">2.</span> <span class="nav-text">后端</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#安装bpmappers"><span class="nav-number">2.1.</span> <span class="nav-text">安装bpmappers</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#编写映射器"><span class="nav-number">2.2.</span> <span class="nav-text">编写映射器</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DRF-Django-REST-framework"><span class="nav-number">3.</span> <span class="nav-text">DRF-Django REST framework</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="霖"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">霖</p>
+  <div class="site-description" itemprop="description">センスに自信がある</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="sidebar-button motion-element">
+    <a onclick="tidioChatApi.open();"><i class="fa fa-comment"></i>
+    Chat
+  </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zzd6263165" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;zzd6263165" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:541276587@qq.com" title="E-Mail → mailto:541276587@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="tencent://AddContact/?fromId=50&fromSubId=1&subcmd=all&uin=541276587" title="QQ → tencent:&#x2F;&#x2F;AddContact&#x2F;?fromId&#x3D;50&amp;fromSubId&#x3D;1&amp;subcmd&#x3D;all&amp;uin&#x3D;541276587" rel="noopener" target="_blank"><i class="fa fa-fw fa-qq"></i>QQ</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/atom.xml" title="RSS → &#x2F;atom.xml"><i class="fa fa-fw fa-rss"></i>RSS</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      Links
+    </div>
+        <span class="links-of-blogroll-item">
+          <a href="https://tingzai.github.io/" title="https:&#x2F;&#x2F;tingzai.github.io&#x2F;" rel="noopener" target="_blank">婷仔</a>
+        </span>
+        <span class="links-of-blogroll-item">
+          <a href="https://fhlsyol.top/" title="https:&#x2F;&#x2F;fhlsyol.top&#x2F;" rel="noopener" target="_blank">Fhlsyol</a>
+        </span>
+  </div>
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">霖</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">49k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">44 分钟</span>
+</div>
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("12/20/2019 00:00:00");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已侥幸存活 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+
+        
+<div class="busuanzi-count">
+  <script pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        访客数：<span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        访问量：<span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '#pjax',
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML,
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.getAttribute('pjax') !== null) {
+      element.setAttribute('pjax', '');
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+
+</script>
+
+
+  <script defer src="/lib/three/three.min.js"></script>
+
+
+  
+  <script pjax>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+  <script src="//code.tidio.co/k9ughjaj6qve5bhkgq5jehurdlhptpc6.js"></script>
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: '93854aa6f21b4bc50b3a',
+      clientSecret: 'a3bb60bd26cef2a5e4ea26e14be5d975dbff36c1',
+      repo: 'zzd6263165.github.io',
+      owner: 'zzd6263165',
+      admin: ['zzd6263165'],
+      id: '2be25543ada07ac994c862f20dfd8281',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+  <!-- 音频播放 -->
+<link rel="stylesheet" href="/dist/APlayer.min.css">
+<div id="aplayer"></div>
+<script type="text/javascript" src="/dist/APlayer.min.js"></script>
+<script type="text/javascript" src="/dist/music.js"></script>
+<!-- <script src="/live2d-widget/autoload.js"></script> -->
+<!-- 背景图 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-backstretch/2.0.4/jquery.backstretch.min.js"></script>
+<script>
+$("body").backstretch("images/bg.jpg");
+</script>
+
+<!--崩溃欺骗-->
+<script type="text/javascript" src="/js/src/crash_cheat.js"></script>
+
+</body>
+
+</html>
