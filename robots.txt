@@ -11,5 +11,5 @@ Disallow: /css/
 Disallow: /fonts/
 Disallow: /vendors/
 Disallow: /fancybox/
-Sitemap: https://hanlin.fun/sitemap.xml
-Sitemap: https://hanlin.fun/baidusitemap.xml
+Sitemap: https://zzd6263165.github.io/sitemap.xml
+Sitemap: https://zzd6263165.github.io/baidusitemap.xml
